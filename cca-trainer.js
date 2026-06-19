@@ -57,6 +57,77 @@ const DOMAINS = [
   },
 ];
 
+/* ---------- Scenarios (shared setup for a group of questions; mirrors the real
+   exam's scenario-based format). A question links to one via its `sc` field. ---------- */
+const SCENARIOS = {
+  s1: {
+    d: "d1",
+    title: "Fintech refund agent",
+    context:
+      "You're building an autonomous agent for a payments company. It can look up transactions and issue refunds, runs unattended overnight, and occasionally retries failed tool calls.",
+  },
+  s2: {
+    d: "d1",
+    title: "Research orchestrator",
+    context:
+      "A research assistant must answer a broad question by gathering facts from many independent sources, then synthesise one report. Latency matters less than coverage and accuracy.",
+  },
+  s3: {
+    d: "d1",
+    title: "Nightly classification pipeline",
+    context:
+      "Every night you must label 80,000 incoming support emails by topic. No one is waiting — results just need to be ready by morning — and the labels feed a dashboard.",
+  },
+  s4: {
+    d: "d2",
+    title: "Onboarding a monorepo team",
+    context:
+      "A 30-developer team is adopting Claude Code on a shared monorepo. They want consistent conventions for everyone, room for personal preferences, and a guardrail an individual can't accidentally bypass.",
+  },
+  s5: {
+    d: "d2",
+    title: "Locked-down regulated codebase",
+    context:
+      "You maintain a codebase under strict compliance rules: a /secrets directory must never be edited by AI, and every AI-made change has to be logged for audit.",
+  },
+  s6: {
+    d: "d3",
+    title: "Invoice extraction service",
+    context:
+      "You're shipping a service that reads scanned invoices and returns structured data (vendor, total, line items) to a downstream accounting system. It runs at high volume and must be machine-parseable.",
+  },
+  s7: {
+    d: "d3",
+    title: "Support-ticket summariser",
+    context:
+      "A tool summarises long customer-support threads for agents. Summaries must follow a fixed format, stay grounded in the thread, and never invent details that weren't said.",
+  },
+  s8: {
+    d: "d4",
+    title: "Internal MCP server",
+    context:
+      "Your team is exposing an internal system to Claude through a custom MCP server. It offers read-only product data plus a few powerful actions like 'cancel order' and 'issue credit'.",
+  },
+  s9: {
+    d: "d4",
+    title: "Travel-booking tool suite",
+    context:
+      "You're designing the tools for a travel agent: search flights, hold a seat, and confirm a booking (which charges a card). The model must call them reliably and safely.",
+  },
+  s10: {
+    d: "d5",
+    title: "Long-running chat assistant",
+    context:
+      "A customer chats with your assistant for hours in a single session. Over time the responses start to drift and slow as the conversation history piles up.",
+  },
+  s11: {
+    d: "d5",
+    title: "RAG over a policy library",
+    context:
+      "You answer employee questions from a large internal policy library using retrieval. Some answers come back vague or wrong, and legal wants every answer to be checkable.",
+  },
+};
+
 /* ---------- Question bank (practice questions, not real exam items) ---------- */
 const Q = [
   // D1 — Agentic (10)
@@ -944,11 +1015,374 @@ const Q = [
     c: 1,
     e: "When the answer points back to its sources, the user can check it themselves. Citation makes RAG answers verifiable and builds trust — and makes hallucinations easier to spot.",
   },
+
+  /* ===== Scenario-based set (inspired by the claudecertificationguide.com mock format) ===== */
+
+  // s1 — Fintech refund agent (d1)
+  {
+    d: "d1",
+    sc: "s1",
+    q: "Because the agent retries failed tool calls, the refund tool could run twice for the same transaction. What should you design for?",
+    a: [
+      "A faster, more reliable network so retries never actually happen",
+      "Idempotency — a unique refund key per transaction so a repeat call is a safe no-op",
+      "A prompt instruction telling the agent never to retry a refund",
+      "Letting finance reverse any accidental double-refunds the next day",
+    ],
+    c: 1,
+    e: "Retries are a fact of life for an unattended agent. An idempotency key per transaction makes a repeated call harmless instead of paying the customer twice.",
+  },
+  {
+    d: "d1",
+    sc: "s1",
+    q: "For refunds above a threshold the business wants a human to sign off. Where does that checkpoint belong?",
+    a: [
+      "After the refund is issued, as an audit-log entry",
+      "Before the refund is issued, as a required approval step",
+      "It's unnecessary as long as the model is capable enough",
+      "Only when the customer specifically asks for a review",
+    ],
+    c: 1,
+    e: "Approval has to come before the irreversible step. A sign-off after the money has moved can't undo it — it's only a record.",
+  },
+  {
+    d: "d1",
+    sc: "s1",
+    q: "It runs unattended overnight. What best stops a malfunctioning loop from burning unlimited cost?",
+    a: [
+      "Pick the cheapest model and trust the bill stays low",
+      "An iteration cap plus a token/tool-call budget with hard stop conditions",
+      "Disable logging overnight to save money",
+      "Give the agent fewer tools so it makes fewer calls",
+    ],
+    c: 1,
+    e: "Unattended loops need an explicit brake. Caps on iterations and a token/tool budget with stop conditions bound the worst case; the rest are guesses.",
+  },
+
+  // s2 — Research orchestrator (d1)
+  {
+    d: "d1",
+    sc: "s2",
+    q: "Coverage matters and the sources are independent. Which pattern fits best?",
+    a: [
+      "One giant prompt that reads every source at once",
+      "An orchestrator that fans out parallel workers, one per source, then synthesises",
+      "A single autonomous agent looping through sources with no structure",
+      "Run the same prompt many times and take the majority answer",
+    ],
+    c: 1,
+    e: "Independent subtasks that each benefit from focused handling are the textbook case for orchestrator-worker with parallel fan-out — you get coverage and throughput, then a synthesis step combines results.",
+  },
+  {
+    d: "d1",
+    sc: "s2",
+    q: "Each worker does a lot of digging. What should a worker hand back to the orchestrator?",
+    a: [
+      "Its entire transcript so nothing is lost",
+      "A focused summary of its findings, not its full internal context",
+      "Nothing — the orchestrator can infer the result",
+      "All raw search results, unfiltered",
+    ],
+    c: 1,
+    e: "Isolated workers exist to keep the orchestrator's context clean. They should return a compressed result; dumping full transcripts back defeats the purpose.",
+  },
+
+  // s3 — Nightly classification pipeline (d1)
+  {
+    d: "d1",
+    sc: "s3",
+    q: "80,000 emails, no one waiting, done by morning. Most cost-effective approach?",
+    a: [
+      "Fire all 80,000 as real-time calls at once",
+      "Use the Batch API — asynchronous processing at lower cost when latency is fine",
+      "One enormous prompt containing all 80,000 emails",
+      "A single agent looping through them one at a time",
+    ],
+    c: 1,
+    e: "The workload is high-volume, independent and not urgent — exactly what the Batch API is for: it trades latency for lower cost.",
+  },
+  {
+    d: "d1",
+    sc: "s3",
+    q: "Labelling each email is a simple, well-defined task. Which model choice is smartest?",
+    a: [
+      "The largest, most expensive model for maximum quality",
+      "A smaller, faster (cheaper) model sized to the simplicity of the task",
+      "A different random model per email to spread load",
+      "Whichever model has the biggest context window",
+    ],
+    c: 1,
+    e: "Match model size to task difficulty. Routine classification doesn't need a frontier model — a smaller one does it cheaper at scale, and you save the big model for genuinely hard work.",
+  },
+
+  // s4 — Onboarding a monorepo team (d2)
+  {
+    d: "d2",
+    sc: "s4",
+    q: "Where should team-wide conventions live versus an individual's personal preferences?",
+    a: [
+      "Everything in each person's user config",
+      "Shared conventions in a project CLAUDE.md committed to the repo; personal prefs in user scope",
+      "One global file on a shared server everyone points at",
+      "Nowhere — good developers infer the conventions",
+    ],
+    c: 1,
+    e: "Committed project scope gives everyone the same context; user scope keeps personal preferences private without imposing them on the team.",
+  },
+  {
+    d: "d2",
+    sc: "s4",
+    q: "Some rules apply to the whole repo, others only to the /payments package. Best structure?",
+    a: [
+      "One root CLAUDE.md with headings for every folder",
+      "A root CLAUDE.md for shared rules and a more specific one inside /payments",
+      "Repeat all rules in a CLAUDE.md in every folder",
+      "Put the package rules in code comments",
+    ],
+    c: 1,
+    e: "CLAUDE.md files nest. General rules belong at the root; package-specific rules live closer to where they apply, in that subfolder.",
+  },
+  {
+    d: "d2",
+    sc: "s4",
+    q: "They want a rule an individual developer can't accidentally bypass. What enforces it?",
+    a: [
+      "A strongly worded note in CLAUDE.md",
+      "A hook that runs deterministically on the relevant event",
+      "Asking everyone to be careful at the start of each session",
+      "A comment at the top of each file",
+    ],
+    c: 1,
+    e: "CLAUDE.md is guidance a model can slip on. A hook is code that runs no matter what — the right tool when a rule must hold every time.",
+  },
+
+  // s5 — Locked-down regulated codebase (d2)
+  {
+    d: "d2",
+    sc: "s5",
+    q: "How do you guarantee /secrets is never edited by Claude?",
+    a: [
+      "Document the rule clearly in CLAUDE.md",
+      "A hook that intercepts and denies any edit to that path",
+      "Ask Claude at the start of every session to avoid it",
+      "Delete /secrets and restore it manually when needed",
+    ],
+    c: 1,
+    e: "An absolute requirement can't rely on a prompt instruction. A hook that blocks the action deterministically is the guarantee you need.",
+  },
+  {
+    d: "d2",
+    sc: "s5",
+    q: "Every AI change must be logged for audit. Best approach?",
+    a: [
+      "Trust the model to record each change it makes",
+      "Hooks for deterministic logging and review gates, plus scoped permissions",
+      "Turn off AI tooling entirely",
+      "Have developers write a manual changelog after each session",
+    ],
+    c: 1,
+    e: "Auditability can't depend on the model remembering. Hooks give guaranteed logging/gating, and scoped permissions limit what can happen in the first place.",
+  },
+
+  // s6 — Invoice extraction service (d3)
+  {
+    d: "d3",
+    sc: "s6",
+    q: "The accounting system needs reliably parseable data. Most robust way to get it?",
+    a: [
+      "Ask for JSON in prose and parse the text",
+      "Use tool use / structured output with an input_schema that forces the shape",
+      "Ask for Markdown and scrape the fields out",
+      "Set temperature to 0 and hope for valid JSON",
+    ],
+    c: 1,
+    e: "A schema gives the model a shape to fill and yields parseable output. Free-text JSON requests are far more fragile at high volume.",
+  },
+  {
+    d: "d3",
+    sc: "s6",
+    q: "Beyond a schema, what's a simple trick to force the response to start as JSON?",
+    a: [
+      "Tell the model to 'be precise'",
+      "Prefill the assistant turn with an opening brace",
+      "Raise temperature so it explores formats",
+      "Make the prompt as short as possible",
+    ],
+    c: 1,
+    e: "Prefilling the start of the assistant's reply steers the format from the first token — prefill '{' to lock it into JSON.",
+  },
+  {
+    d: "d3",
+    sc: "s6",
+    q: "Some invoices come back with a made-up currency code. How do you constrain that field?",
+    a: [
+      "Leave it a free string and clean it up later",
+      "Use an enum of allowed currency codes in the schema",
+      "Ask the model to be careful with currencies",
+      "Drop the field from the schema and validate only in code",
+    ],
+    c: 1,
+    e: "An enum limits the field to known-valid values, so the contract rejects a bogus code instead of you catching it downstream.",
+  },
+
+  // s7 — Support-ticket summariser (d3)
+  {
+    d: "d3",
+    sc: "s7",
+    q: "Summaries sometimes include details that weren't in the thread. Best fix?",
+    a: [
+      "Tell the model to sound more confident",
+      "Instruct it to use only the thread, cite where claims come from, and flag anything unknown",
+      "Increase temperature for variety",
+      "Remove the system prompt",
+    ],
+    c: 1,
+    e: "Grounding ties the output to the source and gives an explicit 'not stated' escape hatch — that's what stops it inventing details.",
+  },
+  {
+    d: "d3",
+    sc: "s7",
+    q: "Summaries must follow a fixed format every time. What helps most?",
+    a: [
+      "Ask for a 'nice, tidy' summary",
+      "Give an explicit template, plus a few-shot example of it filled in",
+      "Set temperature to 1",
+      "Shorten the prompt so it isn't distracted",
+    ],
+    c: 1,
+    e: "Show the exact shape you want — a template plus an example — so the format is concrete. 'Nice' isn't a specification.",
+  },
+
+  // s8 — Internal MCP server (d4)
+  {
+    d: "d4",
+    sc: "s8",
+    q: "The read-only product catalogue the model looks things up in — which MCP primitive?",
+    a: [
+      "A tool, since fetching counts as an action",
+      "A resource — contextual, read-only data the server exposes",
+      "A hook that injects it before each call",
+      "A plugin that bundles it with commands",
+    ],
+    c: 1,
+    e: "Data you read maps to a resource; actions with effects map to tools. A read-only catalogue is reference data, so it's a resource.",
+  },
+  {
+    d: "d4",
+    sc: "s8",
+    q: "'Cancel order' and 'issue credit' are exposed. Best practice for them?",
+    a: [
+      "Expose them openly so the model is unconstrained",
+      "Scope access, require auth, least privilege, and confirm these destructive actions",
+      "Trust the model not to misuse them",
+      "Hide them by omitting them from the descriptions",
+    ],
+    c: 1,
+    e: "Design for things going wrong: least privilege plus explicit confirmation on destructive actions, not faith that the model always behaves.",
+  },
+  {
+    d: "d4",
+    sc: "s8",
+    q: "The server authenticates to the internal system. Where do the credentials belong?",
+    a: [
+      "Passed through the model's context so it can use them",
+      "On the server/integration side, never through the model's context",
+      "Written into every prompt",
+      "Stored in the tool description the model reads",
+    ],
+    c: 1,
+    e: "Secrets must never pass through the model's context. Auth lives where the server talks to the backend, outside what the model sees.",
+  },
+
+  // s9 — Travel-booking tool suite (d4)
+  {
+    d: "d4",
+    sc: "s9",
+    q: "search, hold and confirm are easy to confuse. How do you help the model pick correctly?",
+    a: [
+      "Give them short, cryptic names to save space",
+      "Distinct, descriptive names plus descriptions of what each does and when to use it",
+      "Reuse one name across the related tools",
+      "Omit descriptions since the names already exist",
+    ],
+    c: 1,
+    e: "The model selects by name and description. Distinct, well-described tools that say what they do and when reduce wrong calls and wrong arguments.",
+  },
+  {
+    d: "d4",
+    sc: "s9",
+    q: "'confirm' charges the customer's card and might be retried. What protects against a double charge?",
+    a: [
+      "Hope a retry never coincides with a charge",
+      "Make confirm idempotent with a unique booking key",
+      "Tell the model to confirm only once",
+      "Refund duplicate charges manually afterwards",
+    ],
+    c: 1,
+    e: "A side-effecting action that can be retried needs idempotency — a unique key per booking so a repeated confirm doesn't charge twice.",
+  },
+
+  // s10 — Long-running chat assistant (d5)
+  {
+    d: "d5",
+    sc: "s10",
+    q: "Responses drift and slow as history grows. Best strategy?",
+    a: [
+      "Send the full, unchanged history every turn",
+      "Summarise and compress older turns, keep what's relevant, drop the noise",
+      "Start a brand-new chat on every message",
+      "Switch to a smaller model",
+    ],
+    c: 1,
+    e: "Active context management — compacting older turns while keeping what matters — fixes the drift; piling everything in just fills the window with noise.",
+  },
+  {
+    d: "d5",
+    sc: "s10",
+    q: "Between calls, how does the assistant 'remember' earlier parts of the chat?",
+    a: [
+      "The model retains memory on its own between calls",
+      "You pass the relevant state and history into each call — the model is stateless",
+      "It's stored in the model's weights as you talk",
+      "It isn't really possible across many turns",
+    ],
+    c: 1,
+    e: "The model has no memory between calls. Whatever it needs to 'remember' must be carried explicitly in the context you send each turn.",
+  },
+
+  // s11 — RAG over a policy library (d5)
+  {
+    d: "d5",
+    sc: "s11",
+    q: "Answers come back vague or wrong. What's the first root cause to check?",
+    a: [
+      "The model is simply too small",
+      "Retrieval quality — irrelevant chunks give bad answers regardless of model",
+      "Temperature is set wrong",
+      "The system prompt is too short",
+    ],
+    c: 1,
+    e: "RAG is only as good as what it retrieves. Wrong or irrelevant context dooms the answer no matter how strong the model is — start at the retrieval stage.",
+  },
+  {
+    d: "d5",
+    sc: "s11",
+    q: "Legal wants every answer to be checkable. How do you deliver that?",
+    a: [
+      "Have the model answer more confidently",
+      "Return the sources or citations the answer is built on",
+      "Hide the sources so answers look more authoritative",
+      "Raise temperature for more convincing phrasing",
+    ],
+    c: 1,
+    e: "Returning the sources lets the reader verify the claim themselves — citations make RAG answers checkable and expose hallucinations.",
+  },
 ];
 
 /* ---------- State + persistence ---------- */
 const STORE_KEY = "cca:stats:v1";
 const SESSION_KEY = "cca:session:v1";
+const PASS_PCT = 72; // CCA pass mark is 720/1000 = 72%
 let mem = {}; // last-resort fallback when neither window.storage nor localStorage works
 /* Storage adapter: prefer the host's window.storage; otherwise localStorage so progress
    and a paused session survive a page refresh in a normal browser; finally in-memory.
@@ -1062,15 +1496,14 @@ function masteryPct(d) {
   return s.seen ? Math.round((100 * s.correct) / s.seen) : 0;
 }
 function overallReadiness() {
-  // weighted by exam weight; only counts domains you've actually practiced
-  let num = 0,
-    den = 0;
+  // Weighted by exam weight across ALL domains: a domain you haven't practised
+  // counts as 0, so a single domain can't push readiness to 100% — it climbs only
+  // as you cover more domains AND keep answering correctly.
+  const den = DOMAINS.reduce((a, d) => a + d.weight, 0); // total exam weight (100)
+  let num = 0;
   DOMAINS.forEach((d) => {
     const s = stats[d.id];
-    if (s.seen) {
-      num += d.weight * (s.correct / s.seen);
-      den += d.weight;
-    }
+    if (s.seen) num += d.weight * (s.correct / s.seen);
   });
   return den ? Math.round((num / den) * 100) : 0;
 }
@@ -1092,6 +1525,30 @@ function shuffle(arr) {
 function shuffleOptions(q) {
   const order = shuffle(q.a.map((_, i) => i));
   return { ...q, a: order.map((i) => q.a[i]), c: order.indexOf(q.c) };
+}
+
+/* Keep questions that share a scenario together: walk the (already shuffled) pool,
+   and whenever we hit the first unplaced question of a scenario, pull all of that
+   scenario's other selected questions in right after it. Standalone questions keep
+   their order. */
+function regroupScenarios(items) {
+  const out = [];
+  const placed = new Array(items.length).fill(false);
+  for (let i = 0; i < items.length; i++) {
+    if (placed[i]) continue;
+    out.push(items[i]);
+    placed[i] = true;
+    const sc = items[i].sc;
+    if (sc) {
+      for (let j = i + 1; j < items.length; j++) {
+        if (!placed[j] && items[j].sc === sc) {
+          out.push(items[j]);
+          placed[j] = true;
+        }
+      }
+    }
+  }
+  return out;
 }
 
 function buildSession() {
@@ -1122,6 +1579,7 @@ function buildSession() {
   // shuffle the answer options for each picked question (stored in the session,
   // so the order stays stable across pause/resume)
   pool = pool.map(shuffleOptions);
+  pool = regroupScenarios(pool); // questions sharing a scenario appear back-to-back
   session = {
     items: pool,
     i: 0,
@@ -1147,6 +1605,17 @@ function render() {
   renderHome();
 }
 
+/* A faint "?" + a hover/focus overlay scoped to the card it sits in.
+   `body` is the explanation HTML shown inside that card's frame. */
+function helpBlock(body) {
+  return `
+      <button class="help-btn" type="button" aria-label="What is this?" title="What is this?">?</button>
+      <div class="help-overlay" role="note">
+        <span class="help-tag">What is this?</span>
+        <div class="help-body">${body}</div>
+      </div>`;
+}
+
 function renderHome() {
   const ready = overallReadiness();
   const seen = totalSeen();
@@ -1158,7 +1627,7 @@ function renderHome() {
     <div class="card">
       <div class="meter-head">
         <h2>Mastery per domain</h2>
-        <span class="sub">width = exam weight · fill = your mastery</span>
+        <span class="sub">width = exam weight · fill = % correct so far</span>
       </div>
       <div class="barlabels">
         ${DOMAINS.map(
@@ -1182,13 +1651,18 @@ function renderHome() {
           const s = stats[d.id];
           return `
           <div class="row"><span class="dot" style="background:${d.hex}"></span>${d.short}
-          <span class="pct">${s.seen ? masteryPct(d) + "% · " + s.correct + "/" + s.seen : "–"}</span></div>`;
+          <span class="pct">${s.seen ? masteryPct(d) + "% of " + s.seen + " tried" : "not tried yet"}</span></div>`;
         }).join("")}
       </div>
       <div class="readiness">
         <span class="num">${seen ? ready + "%" : "–"}</span>
         <span class="cap">weighted readiness${seen ? "" : " · no practice yet"}</span>
       </div>
+      ${helpBlock(`
+        <p>This is your progress dashboard — read-only, it just reflects how you're doing.</p>
+        <p>Each column's <b>width</b> is that domain's weight on the real exam — Agentic counts most (27%), Context least (15%). The coloured <b>fill</b> is your accuracy: the % of the questions you've <i>tried</i> in that domain that you got right. It's not a completion bar — 2 of 2 correct shows as a full 100%, because it measures how well you've done so far, not how much is left.</p>
+        <p>The <b>legend</b> below reads "<i>X% of N tried</i>" per domain — your accuracy and how many you've attempted. "Not tried yet" means you haven't touched that domain.</p>
+        <p><b>Weighted readiness</b> rolls all five domains into one number, each counted by its exam weight — a rough estimate of how exam-ready you are. Domains you haven't practised yet count as 0%, so one domain alone can't get you near 100%; it climbs as you cover more ground AND answer correctly. Aim for <b>72%+</b> (the real pass mark).</p>`)}
     </div>
 
     ${
@@ -1201,6 +1675,9 @@ function renderHome() {
         <button class="btn" id="resumeBtn">Resume session →</button>
         <button class="btn ghost sm" id="dropBtn">Discard</button>
       </div>
+      ${helpBlock(`
+        <p>You paused a session earlier. <b>Resume</b> picks it up exactly where you left off — same questions, same order, and the exam clock too if it was an exam sim.</p>
+        <p><b>Discard</b> throws it away so you can start fresh. Starting a brand-new session also discards a paused one.</p>`)}
     </div>`
         : ""
     }
@@ -1215,18 +1692,28 @@ function renderHome() {
             <button class="chip" data-v="exam" aria-pressed="${mode === "exam"}">Exam sim · answers at the end</button>
           </div>
         </div>
+        ${
+          mode === "study"
+            ? `
         <div class="field">
           <label>Focus</label>
           <div class="opts" id="focusOpts">
             <button class="chip" data-v="weighted" aria-pressed="${focus === "weighted"}">Weighted mix</button>
             ${DOMAINS.map((d) => `<button class="chip" data-v="${d.id}" aria-pressed="${focus === d.id}"${focus === d.id ? ` style="background:${d.hex};border-color:${d.hex};color:#fff"` : ""}>${d.short}</button>`).join("")}
           </div>
-        </div>
+        </div>`
+            : ""
+        }
       </div>
       <div class="btnrow">
         <button class="btn" id="startBtn">${savedSession ? "Start new (discard paused) →" : "Start session →"}</button>
-        ${seen ? `<button class="btn ghost sm" id="resetBtn">Reset progress</button>` : ""}
       </div>
+      ${helpBlock(`
+        <p>Pick how you want to practise, then press <b>Start</b>.</p>
+        <p><b>Mode · Practice</b> reveals the correct answer and an explanation after every question, so you learn as you go.</p>
+        <p><b>Mode · Exam sim</b> hides the answers until the end and runs a 60-minute clock — like the real test.</p>
+        <p><b>Focus</b> (practice only) — "Weighted mix" samples across all five domains by their exam weight, or pick a single domain to drill it on its own. Exam sim always uses the weighted mix.</p>
+        <p>Progress saves automatically, and you can pause mid-session and resume later. The <b>trash icon</b> in the bottom-left corner clears your mastery stats (your paused session and theme stay).</p>`)}
     </div>
 
     <div class="disclaimer">
@@ -1237,22 +1724,23 @@ function renderHome() {
     const b = e.target.closest(".chip");
     if (!b) return;
     mode = b.dataset.v;
+    if (mode === "exam") focus = "weighted"; // exam always uses the weighted mix
     renderHome();
   });
-  document.getElementById("focusOpts").addEventListener("click", (e) => {
-    const b = e.target.closest(".chip");
-    if (!b) return;
-    focus = b.dataset.v;
-    renderHome();
-  });
+  const focusOpts = document.getElementById("focusOpts");
+  if (focusOpts)
+    focusOpts.addEventListener("click", (e) => {
+      const b = e.target.closest(".chip");
+      if (!b) return;
+      focus = b.dataset.v;
+      renderHome();
+    });
   document.getElementById("startBtn").addEventListener("click", async () => {
     await clearSavedSession();
     buildSession();
     await persistSession();
     render();
   });
-  const rb = document.getElementById("resetBtn");
-  if (rb) rb.addEventListener("click", resetStats);
   const resB = document.getElementById("resumeBtn");
   if (resB)
     resB.addEventListener("click", () => {
@@ -1285,6 +1773,14 @@ function renderQuestion() {
       </div>
     </div>
     <div class="card">
+      ${
+        it.sc && SCENARIOS[it.sc]
+          ? `<div class="scenario">
+        <div class="scenario-head"><span class="scenario-tag">Scenario</span><span class="scenario-title">${SCENARIOS[it.sc].title}</span></div>
+        <p class="scenario-context">${SCENARIOS[it.sc].context}</p>
+      </div>`
+          : ""
+      }
       <div class="qtext">${it.q}</div>
       <div class="answers" id="answers">
         ${it.a.map((opt, k) => `<button class="ans" data-k="${k}"><span class="key">${"ABCD"[k]}</span><span>${opt}</span></button>`).join("")}
@@ -1379,6 +1875,7 @@ function next() {
 function renderSummary() {
   const total = session.items.length;
   const pct = Math.round((100 * session.correctCount) / total);
+  const passed = pct >= PASS_PCT;
   // per-domain breakdown for this session
   const byDom = {};
   DOMAINS.forEach((d) => (byDom[d.id] = { seen: 0, correct: 0 }));
@@ -1400,13 +1897,14 @@ function renderSummary() {
   // Exam-sim total time vs target (count-up clock)
   const examTime =
     mode === "exam"
-      ? `<p class="resume-meta">⏱ Total time: ${fmtClock(session.elapsedMs || 0)} · ${(session.elapsedMs || 0) <= SECS_PER_Q * 1000 * total ? "within target ✓" : "over target (" + fmtClock(SECS_PER_Q * 1000 * total) + ")"}</p>`
+      ? `<p class="resume-meta">⏱ Total time: ${fmtClock(session.elapsedMs || 0)} · ${(session.elapsedMs || 0) <= examTargetMs() ? "within target ✓" : "over target (" + fmtClock(examTargetMs()) + ")"}</p>`
       : "";
 
   app.innerHTML = `
     <div class="eyebrow">Session complete</div>
     <h1>${session.correctCount} / ${total} correct</h1>
-    <p class="lede">${pct >= 80 ? "Solid. That's around the level you want going into a proctored exam." : pct >= 60 ? "Getting there. Review the weak domains before moving on." : "Early days. Take the weakest domains one at a time in practice mode."}</p>
+    <div class="passmark ${passed ? "pass" : "fail"}">${passed ? "✓ Pass" : "✗ Not yet"} · ${pct}% · 72% to pass</div>
+    <p class="lede">${passed ? "At or above the 72% pass mark — that's the level you want going into the proctored exam." : pct >= 60 ? "Just under the 72% pass mark. Review your weak domains and run it again." : "Early days. Take the weakest domains one at a time in practice mode."}</p>
     ${examTime}
 
     <div class="card">
@@ -1501,14 +1999,14 @@ function setupThemeToggle() {
   }
 }
 
-/* ---------- Exam timer (count-up with target; exam mode only) ---------- */
-const SECS_PER_Q = 120; // target time budget per question
+/* ---------- Exam timer (count-up with a fixed target; exam mode only) ---------- */
+const EXAM_TARGET_MS = 60 * 60 * 1000; // the real exam is 60 minutes
 let timerRunningSince = null; // ms timestamp while ticking, else null (NOT persisted)
 let timerInterval = null;
 let timerTickCount = 0;
 
 function examTargetMs() {
-  return SECS_PER_Q * 1000 * (session ? session.items.length : 0);
+  return EXAM_TARGET_MS;
 }
 function fmtClock(ms) {
   const s = Math.max(0, Math.floor(ms / 1000));

@@ -105,6 +105,7 @@ p {
   max-width: 56ch;
 }
 .card {
+  position: relative; /* anchor for the per-card help icon + overlay */
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: 0.875rem;
@@ -517,6 +518,139 @@ p {
   margin-top: 1.125rem;
 }
 .focusnote b {
+  font-family: var(--disp);
+}
+
+/* scenario banner — shared setup shown above a question (exam-style grouping) */
+.scenario {
+  border-left: 3px solid var(--clay);
+  background: var(--paper);
+  border-radius: 0 0.5rem 0.5rem 0;
+  padding: 0.75rem 0.9375rem;
+  margin-bottom: 1.125rem;
+}
+.scenario-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.375rem;
+}
+.scenario-tag {
+  font-family: var(--mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--clay-deep);
+}
+.scenario-title {
+  font-family: var(--disp);
+  font-weight: 600;
+  font-size: 0.9375rem;
+  color: var(--ink);
+}
+.scenario-context {
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+  margin: 0;
+}
+
+/* pass-mark badge on the summary (72% = the real exam's 720/1000) */
+.passmark {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 0.3125rem 0.6875rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  margin: 0.125rem 0 0.75rem;
+}
+.passmark.pass {
+  color: var(--good);
+  border-color: var(--good);
+}
+.passmark.fail {
+  color: var(--bad);
+  border-color: var(--bad);
+}
+
+/* per-card help: a faint "?" in the corner that fades an explanation overlay
+   into THAT card only (sibling combinator keeps each overlay scoped to its card) */
+.help-btn {
+  position: absolute;
+  bottom: 0.625rem;
+  right: 0.625rem;
+  z-index: 3; /* stays on top of its own overlay so hover never drops */
+  width: 1.3125rem;
+  height: 1.3125rem;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink-soft);
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: help;
+  opacity: 0.4;
+  transition:
+    opacity 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease;
+}
+.help-btn:hover,
+.help-btn:focus-visible {
+  opacity: 1;
+  color: var(--clay);
+  border-color: var(--clay);
+  outline: none;
+}
+.help-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4375rem;
+  padding: 1.25rem 1.375rem;
+  border-radius: inherit;
+  background: var(--card);
+  opacity: 0;
+  pointer-events: none;
+  overflow: auto;
+  transition: opacity 0.25s ease;
+}
+.help-btn:hover ~ .help-overlay,
+.help-btn:focus ~ .help-overlay,
+.help-overlay:hover {
+  opacity: 1;
+  pointer-events: auto;
+}
+.help-tag {
+  font-family: var(--mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--clay-deep);
+}
+.help-body {
+  font-size: 0.84rem;
+  line-height: 1.5;
+  color: var(--ink);
+}
+.help-body p {
+  margin: 0 0 0.5rem;
+}
+.help-body p:last-child {
+  margin-bottom: 0;
+}
+.help-body b {
   font-family: var(--disp);
 }
 
