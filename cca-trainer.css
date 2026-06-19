@@ -1,0 +1,618 @@
+/* ============================================================
+   CCA-trener · stiler
+   ------------------------------------------------------------
+   Alt det visuelle bor her: fargevariabler (lys + mørk modus),
+   typografi, og hver komponent — mestringsbaren, kortene, knappene,
+   spørsmålsvisningen og oppsummeringen.
+
+   Lastes av index.html via <link>. Selve logikken (spørsmål,
+   tilstand, rendering) ligger i cca-trainer.js.
+
+   Tema byttes ved å sette/fjerne data-theme="dark" på <html>. Fordi
+   alle fargene under er CSS-variabler, snur ett attributt hele paletten.
+   ============================================================ */
+
+:root {
+  --paper: #f2ede3;
+  --card: #fbf8f1;
+  --ink: #1c1814;
+  --ink-soft: #5c5246;
+  --line: #d9cfbe;
+  --clay: #c4633f;
+  --clay-deep: #a24e2f;
+  --d1: #b0455d;
+  --d2: #c98a2e;
+  --d3: #5e7f6e;
+  --d4: #4a6b82;
+  --d5: #7a5e8a;
+  --good: #4f7a4a;
+  --bad: #b0492f;
+  --disp: "Space Grotesk", system-ui, sans-serif;
+  --body: "Inter", system-ui, sans-serif;
+  --mono: "Space Mono", ui-monospace, monospace;
+}
+/* Dark mode: same variables, warm dark palette. Domain colors (d1–d5) are
+     intentionally unchanged — they read fine on both light and dark. */
+:root[data-theme="dark"] {
+  --paper: #1a1714;
+  --card: #23201b;
+  --ink: #ede6d8;
+  --ink-soft: #a89c88;
+  --line: #3a352d;
+  --clay: #d6754f;
+  --clay-deep: #c06038;
+  --good: #6fa368;
+  --bad: #d46a4c;
+}
+* {
+  box-sizing: border-box;
+}
+/* Fluid root: ~16px on a small laptop, ~18px @1080p, ~20px @1440p, 24px cap @4K.
+     Everything below is in rem, so type AND layout scale together from this one knob. */
+html {
+  font-size: clamp(16px, calc(12px + 0.31vw), 24px);
+}
+html,
+body {
+  margin: 0;
+}
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--body);
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  display: flex;
+  padding: 1.75rem 1.125rem 4rem;
+}
+/* margin:auto centers the column when it fits, but lets it scroll from the top
+     (never clips) when a card is taller than the viewport. */
+.wrap {
+  max-width: 45rem;
+  width: 100%;
+  margin: auto;
+}
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+h1 {
+  font-family: var(--disp);
+  font-weight: 700;
+  font-size: 1.875rem;
+  line-height: 1.1;
+  margin: 0.375rem 0 0.25rem;
+  letter-spacing: -0.01em;
+}
+h2 {
+  font-family: var(--disp);
+  font-weight: 600;
+  font-size: 1.1875rem;
+  margin: 0 0 0.625rem;
+  letter-spacing: -0.01em;
+}
+p {
+  margin: 0 0 0.875rem;
+}
+.lede {
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+  margin-bottom: 1.375rem;
+  max-width: 56ch;
+}
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 0.875rem;
+  padding: 1.375rem;
+}
+.mt {
+  margin-top: 1.125rem;
+}
+
+/* signature: weighted domain mastery bar */
+.meter-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  margin-bottom: 0.625rem;
+}
+.meter-head .sub {
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  color: var(--ink-soft);
+  text-align: right;
+}
+/* labels live ABOVE the bar now, as dark text on the light card — always readable */
+.barlabels {
+  display: flex;
+  margin-bottom: 0.4rem;
+}
+.barlabel {
+  overflow: hidden;
+  padding-right: 0.35rem;
+}
+.barlabel .nm {
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: 0.6875rem;
+  color: var(--ink);
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.barlabel .wt {
+  font-family: var(--mono);
+  font-size: 0.625rem;
+  color: var(--ink-soft);
+}
+.bar {
+  display: flex;
+  height: 2.5rem;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  border: 1px solid var(--line);
+}
+.seg {
+  position: relative;
+  overflow: hidden;
+  border-right: 1px solid var(--card);
+}
+.seg:last-child {
+  border-right: none;
+}
+.seg .fill {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  transition: height 0.5s ease;
+  opacity: 0.95;
+}
+@media (prefers-reduced-motion: reduce) {
+  .seg .fill {
+    transition: none;
+  }
+}
+.legend {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 0.5rem 1rem;
+  margin-top: 1rem;
+}
+.legend .row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+}
+.dot {
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 0.1875rem;
+  flex: none;
+}
+.legend .pct {
+  font-family: var(--mono);
+  color: var(--ink-soft);
+  margin-left: auto;
+  font-size: 0.6875rem;
+}
+
+.readiness {
+  display: flex;
+  align-items: baseline;
+  gap: 0.625rem;
+  margin-top: 1.125rem;
+}
+.readiness .num {
+  font-family: var(--disp);
+  font-weight: 700;
+  font-size: 2rem;
+}
+.readiness .cap {
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+/* controls */
+.controls {
+  display: grid;
+  gap: 0.875rem;
+  margin-top: 1.125rem;
+}
+.field label {
+  display: block;
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-bottom: 0.4375rem;
+}
+.opts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.chip {
+  font-family: var(--body);
+  font-size: 0.8125rem;
+  padding: 0.5rem 0.8125rem;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: 0.15s;
+}
+.chip[aria-pressed="true"] {
+  background: var(--ink);
+  color: var(--card);
+  border-color: var(--ink);
+}
+.chip:focus-visible {
+  outline: 2px solid var(--clay);
+  outline-offset: 2px;
+}
+
+.btn {
+  font-family: var(--disp);
+  font-weight: 600;
+  font-size: 0.9375rem;
+  background: var(--clay);
+  color: #fff;
+  border: none;
+  border-radius: 0.625rem;
+  padding: 0.8125rem 1.25rem;
+  cursor: pointer;
+  transition: 0.15s;
+}
+.btn:hover {
+  background: var(--clay-deep);
+}
+.btn:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+.btn.ghost {
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--line);
+}
+.btn.ghost:hover {
+  background: var(--paper);
+}
+.btn.sm {
+  font-size: 0.8125rem;
+  padding: 0.5625rem 0.875rem;
+}
+.btnrow {
+  display: flex;
+  gap: 0.625rem;
+  flex-wrap: wrap;
+  margin-top: 1.25rem;
+}
+
+/* question */
+.qmeta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.875rem;
+  flex-wrap: wrap;
+}
+/* On narrow screens the content column fills the width and its top-right
+     (Pause/Avbryt) would sit under the fixed theme toggle — reserve a gutter. */
+@media (max-width: 52rem) {
+  .qmeta {
+    padding-right: 3.25rem;
+  }
+}
+.qmeta-right {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  flex-wrap: wrap;
+}
+.link-btn {
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: none;
+  border: none;
+  color: var(--ink-soft);
+  cursor: pointer;
+  padding: 0.25rem 0;
+  transition: 0.12s;
+}
+.link-btn:hover {
+  color: var(--ink);
+}
+.link-btn.danger:hover {
+  color: var(--bad);
+}
+.link-btn:focus-visible {
+  outline: 2px solid var(--clay);
+  outline-offset: 2px;
+  border-radius: 0.25rem;
+}
+.resume {
+  border-color: var(--clay);
+}
+.resume-meta {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+  margin: 0;
+}
+.domtag {
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.25rem 0.5625rem;
+  border-radius: 0.375rem;
+  color: #fff;
+}
+.progress-mini {
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  color: var(--ink-soft);
+  text-align: right;
+}
+.examclock {
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  color: var(--ink-soft);
+}
+.examclock.over {
+  color: var(--bad);
+  font-weight: 700;
+}
+.qtext {
+  font-family: var(--disp);
+  font-weight: 500;
+  font-size: 1.125rem;
+  line-height: 1.4;
+  margin-bottom: 1.125rem;
+}
+.answers {
+  display: grid;
+  gap: 0.5625rem;
+}
+.ans {
+  text-align: left;
+  font-family: var(--body);
+  font-size: 0.9rem;
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 0.625rem;
+  padding: 0.8125rem 0.9375rem;
+  cursor: pointer;
+  transition: 0.12s;
+  display: flex;
+  gap: 0.6875rem;
+  align-items: flex-start;
+}
+.ans:hover:not([disabled]) {
+  border-color: var(--ink-soft);
+}
+.ans:focus-visible {
+  outline: 2px solid var(--clay);
+  outline-offset: 2px;
+}
+.ans .key {
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+  flex: none;
+  margin-top: 0.0625rem;
+}
+.ans[disabled] {
+  cursor: default;
+}
+.ans.correct {
+  border-color: var(--good);
+  background: rgba(79, 122, 74, 0.1);
+}
+.ans.correct .key {
+  color: var(--good);
+}
+.ans.wrong {
+  border-color: var(--bad);
+  background: rgba(176, 73, 47, 0.08);
+}
+.ans.wrong .key {
+  color: var(--bad);
+}
+
+.explain {
+  margin-top: 1rem;
+  border-left: 3px solid var(--clay);
+  padding: 0.125rem 0 0.125rem 0.9375rem;
+}
+.explain .verdict {
+  font-family: var(--disp);
+  font-weight: 600;
+  font-size: 0.875rem;
+  margin-bottom: 0.3125rem;
+}
+.explain .verdict.ok {
+  color: var(--good);
+}
+.explain .verdict.no {
+  color: var(--bad);
+}
+.explain p {
+  font-size: 0.875rem;
+  color: var(--ink);
+  margin: 0;
+}
+
+.disclaimer {
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  color: var(--ink-soft);
+  line-height: 1.6;
+  margin-top: 1.625rem;
+  border-top: 1px solid var(--line);
+  padding-top: 1rem;
+}
+.hidden {
+  display: none !important;
+}
+
+/* summary */
+.sumgrid {
+  display: grid;
+  gap: 0.6875rem;
+  margin-top: 0.375rem;
+}
+.sumrow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.sumrow .nm {
+  font-size: 0.8125rem;
+  min-width: 0;
+  flex: 1;
+}
+.sumrow .track {
+  flex: 1.4;
+  height: 0.5rem;
+  background: var(--paper);
+  border-radius: 99px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+}
+.sumrow .trackfill {
+  height: 100%;
+}
+.sumrow .sc {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--ink-soft);
+  min-width: 3rem;
+  text-align: right;
+}
+.focusnote {
+  font-size: 0.875rem;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 0.625rem;
+  padding: 0.875rem 1rem;
+  margin-top: 1.125rem;
+}
+.focusnote b {
+  font-family: var(--disp);
+}
+
+/* Smooth theme switch — skipped when the user prefers reduced motion */
+@media (prefers-reduced-motion: no-preference) {
+  body,
+  .card,
+  .chip,
+  .btn,
+  .ans,
+  .bar,
+  .seg,
+  .sumrow .track,
+  .focusnote {
+    transition:
+      background-color 0.25s ease,
+      border-color 0.25s ease,
+      color 0.25s ease;
+  }
+}
+
+/* Theme toggle button (top-right) — lives outside #app so re-renders never remove it */
+.theme-toggle {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 10;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 999px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--card);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  cursor: pointer;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s,
+    color 0.15s;
+}
+.theme-toggle:hover {
+  border-color: var(--ink-soft);
+}
+.theme-toggle:focus-visible {
+  outline: 2px solid var(--clay);
+  outline-offset: 2px;
+}
+.theme-toggle svg {
+  width: 1.125rem;
+  height: 1.125rem;
+  display: block;
+}
+@media (prefers-reduced-motion: reduce) {
+  .theme-toggle {
+    transition: none;
+  }
+}
+
+/* Clear-progress button (bottom-left) — orange with white trash icon, outside #app */
+.clear-btn {
+  position: fixed;
+  bottom: 1rem;
+  left: 1rem;
+  z-index: 10;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 999px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--clay);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+.clear-btn:hover {
+  background: var(--clay-deep);
+}
+.clear-btn:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+.clear-btn svg {
+  width: 1.125rem;
+  height: 1.125rem;
+  display: block;
+}
+@media (prefers-reduced-motion: reduce) {
+  .clear-btn {
+    transition: none;
+  }
+}

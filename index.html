@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="no">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CCA-trener · Claude Certified Architect</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=Space+Mono:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <script>
+      /* Kept INLINE on purpose: this must run before first paint so there's no
+     flash of the wrong theme — it can't wait for an external file to download.
+     Saved choice (localStorage) wins; otherwise follow the OS/browser setting.
+     Light is the default (no attribute), so we only set the attribute for dark.
+     The key "cca:theme:v1" must match THEME_KEY in cca-trainer.js. */
+      (function () {
+        try {
+          var saved = localStorage.getItem("cca:theme:v1");
+          var dark = saved
+            ? saved === "dark"
+            : window.matchMedia &&
+              window.matchMedia("(prefers-color-scheme: dark)").matches;
+          if (dark) {
+            document.documentElement.setAttribute("data-theme", "dark");
+          }
+        } catch (e) {
+          /* storage blocked → fall back to light */
+        }
+      })();
+    </script>
+    <!-- Stiler: se cca-trainer.css -->
+    <link rel="stylesheet" href="cca-trainer.css" />
+  </head>
+  <body>
+    <button id="themeToggle" class="theme-toggle" type="button"></button>
+    <button
+      id="clearBtn"
+      class="clear-btn"
+      type="button"
+      title="Nullstill fremgang"
+      aria-label="Nullstill fremgang"
+    >
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6" />
+      </svg>
+    </button>
+    <div class="wrap" id="app"></div>
+
+    <!-- Logikk: se cca-trainer.js. Ligger nederst slik at #app allerede
+     finnes i DOM-en når skriptet kjører. -->
+    <script src="cca-trainer.js"></script>
+  </body>
+</html>

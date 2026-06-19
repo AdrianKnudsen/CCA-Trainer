@@ -1,0 +1,8 @@
+# macOS-søppel
+.DS_Store
+
+# Claude Code maskin-lokal konfig (personlig, hører ikke i repoet)
+.claude/settings.local.json
+
+# Interne design-specer/planer — beholdes på disk, men spores ikke i git
+docs/

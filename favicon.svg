@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="CCA-trener">
+  <!-- Hvit sirkel med en tynn varm kant (#D9CFBE) så den ikke forsvinner mot en lys fane -->
+  <circle cx="32" cy="32" r="30.5" fill="#FFFFFF" stroke="#D9CFBE" stroke-width="1.5"/>
+  <!-- Svart "blekkflekk" i appens ink-farge — én organisk klatt + et par sprutdråper -->
+  <g fill="#1C1814">
+    <path d="M32 14
+             C 38.5 14, 41.5 18.5, 42 23.5
+             C 48 22, 52.5 26, 51 31.5
+             C 55.5 34.5, 54 41, 48.5 42
+             C 48.5 48, 43 51.5, 38 49
+             C 35 53, 28 53, 25 47.5
+             C 19.5 49, 14.5 44.5, 17 39
+             C 12 35.5, 13.5 28.5, 19.5 27.5
+             C 19.5 21.5, 24.5 18, 30 20.5
+             C 30 16.5, 30 14, 32 14 Z"/>
+    <circle cx="51.5" cy="15.5" r="2.6"/>
+    <circle cx="14.5" cy="50" r="2.1"/>
+    <circle cx="50.5" cy="50.5" r="1.7"/>
+  </g>
+</svg>
