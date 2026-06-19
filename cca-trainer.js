@@ -1,31 +1,31 @@
 /* ============================================================
-   CCA-trener · logikk
+   CCA Trainer · logic
    ------------------------------------------------------------
-   Spørsmålsbank, tilstand + lagring, rendering og eksamensklokke.
-   Lastes nederst i index.html — altså ETTER at #app finnes i DOM-en —
-   så vi slipper å vente på noen "ready"-hendelse.
+   Question bank, state + storage, rendering and the exam clock.
+   Loaded at the bottom of index.html — i.e. AFTER #app exists in the DOM —
+   so we don't have to wait for any "ready" event.
 
-   Stilene ligger i cca-trainer.css.
+   The styles live in cca-trainer.css.
 
-   Merk: det lille anti-flash-temaskriptet ligger fortsatt INLINE i
-   <head> i index.html. Det må kjøre før første paint for å unngå at feil
-   tema blinker til, og kan derfor ikke vente på at denne fila lastes ned.
-   Resten av tema-logikken (selve toggle-knappen) bor her nede.
+   Note: the small anti-flash theme script is still INLINE in the
+   <head> of index.html. It must run before first paint to avoid flashing
+   the wrong theme, and therefore can't wait for this file to download.
+   The rest of the theme logic (the toggle button itself) lives down here.
    ============================================================ */
 
 /* ---------- Domains (weights from a community guide, NOT confirmed by Anthropic) ---------- */
 const DOMAINS = [
   {
     id: "d1",
-    name: "Agentisk arkitektur & orkestrering",
-    short: "Agentisk",
+    name: "Agentic architecture & orchestration",
+    short: "Agentic",
     weight: 27,
     color: "var(--d1)",
     hex: "#B0455D",
   },
   {
     id: "d2",
-    name: "Claude Code · konfig & workflows",
+    name: "Claude Code · config & workflows",
     short: "Claude Code",
     weight: 20,
     color: "var(--d2)",
@@ -41,7 +41,7 @@ const DOMAINS = [
   },
   {
     id: "d4",
-    name: "Tool design & MCP-integrasjon",
+    name: "Tool design & MCP integration",
     short: "Tool/MCP",
     weight: 18,
     color: "var(--d4)",
@@ -62,887 +62,887 @@ const Q = [
   // D1 — Agentic (10)
   {
     d: "d1",
-    q: "En oppgave er avgrenset og deterministisk — samme input gir alltid samme steg. Hva taler for å bruke ett tool-augmentert kall fremfor et multi-agent-system?",
+    q: "A task is well-scoped and deterministic — the same input always produces the same steps. What argues for using a single tool-augmented call instead of a multi-agent system?",
     a: [
-      "Et multi-agent-oppsett gir høyere nøyaktighet på enhver oppgave, så det er det tryggeste valget",
-      "Orkestrering legger til feiloverflate og latens uten gevinst når oppgaven ikke trenger koordinering",
-      "Agenter er billigere per kall, så flere agenter senker totalkostnaden over tid",
-      "Et enkeltkall kan ikke bruke verktøy, så en agent er nødvendig for alt utover ren tekst",
+      "A multi-agent setup gives higher accuracy on any task, so it's the safest choice",
+      "Orchestration adds failure surface and latency with no payoff when the task doesn't need coordination",
+      "Agents are cheaper per call, so more agents lower the total cost over time",
+      "A single call can't use tools, so an agent is required for anything beyond plain text",
     ],
     c: 1,
-    e: "Prinsippet er «ikke legg til agenter du ikke trenger». Hvert ekstra ledd i en orkestrering er en ny ting som kan feile og koste tokens/tid. Når oppgaven er avgrenset, vinner det enkleste som løser den.",
+    e: "The principle is 'don't add agents you don't need.' Every extra link in an orchestration is one more thing that can fail and cost tokens/time. When the task is well-scoped, the simplest thing that solves it wins.",
   },
   {
     d: "d1",
-    q: "En agent-loop står fast og gjentar det samme feilende verktøykallet om og om igjen. Hva er det beste arkitektoniske mottiltaket?",
+    q: "An agent loop gets stuck and repeats the same failing tool call over and over. What's the best architectural countermeasure?",
     a: [
-      "Øk max_tokens slik at agenten får mer plass til å tenke seg ut av situasjonen",
-      "Fjern verktøyet fra agenten helt, så den ikke kan gjøre det feilende kallet igjen",
-      "Sett en iterasjonsgrense og oppdag gjentatte identiske kall, så loopen brytes og eskaleres",
-      "Legg til en instruksjon i prompten om at agenten ikke skal gjenta seg selv unødig",
+      "Increase max_tokens so the agent has more room to think its way out of the situation",
+      "Remove the tool from the agent entirely so it can't make the failing call again",
+      "Set an iteration limit and detect repeated identical calls, so the loop breaks and escalates",
+      "Add an instruction in the prompt telling the agent not to repeat itself unnecessarily",
     ],
     c: 2,
-    e: "Du må binde loopen og oppdage manglende fremdrift. Maks-iterasjoner + å fange «samme kall igjen» og bryte/eskalere er deterministisk; en prompt-instruksjon alene er det ikke.",
+    e: "You need to bound the loop and detect lack of progress. A max-iteration cap plus catching 'same call again' and breaking/escalating is deterministic; a prompt instruction alone is not.",
   },
   {
     d: "d1",
-    q: "I et orkestrator-/subagent-oppsett gir du hver subagent sin egen, isolerte kontekst. Hva er hovedgrunnen?",
+    q: "In an orchestrator/subagent setup you give each subagent its own isolated context. What's the main reason?",
     a: [
-      "Det reduserer antallet API-nøkler du trenger fordi hver agent gjenbruker samme økt",
-      "Det holder hver agents kontekst fokusert og fri for context-forurensning",
-      "Det lar agentene dele minne automatisk så de slipper å sende tilstand mellom seg",
-      "Det er et formelt krav i MCP-spesifikasjonen for alle fleragent-systemer",
+      "It reduces the number of API keys you need because each agent reuses the same session",
+      "It keeps each agent's context focused and free of context pollution",
+      "It lets the agents share memory automatically so they don't have to pass state between them",
+      "It's a formal requirement in the MCP specification for all multi-agent systems",
     ],
     c: 1,
-    e: "Fokusert kontekst per agent = mindre støy, færre tokens, mer pålitelige svar. Når alt deler én voksende kontekst, drukner det relevante i det irrelevante.",
+    e: "Focused context per agent = less noise, fewer tokens, more reliable answers. When everything shares one growing context, the relevant drowns in the irrelevant.",
   },
   {
     d: "d1",
-    q: "Du skal klassifisere 100 000 uavhengige dokumenter. Det haster ikke — resultatet kan komme om noen timer. Hva er mest kostnadseffektivt?",
+    q: "You need to classify 100,000 independent documents. It's not urgent — the results can come in a few hours. What's most cost-effective?",
     a: [
-      "Send alle som vanlige sanntidskall samtidig, så blir hele jobben ferdig raskest mulig",
-      "Bruk Batch API — asynkron behandling med lavere kostnad når du tåler litt ventetid",
-      "Bygg ett stort prompt med alle dokumentene, så slipper du overhead per enkeltkall",
-      "Kjør én autonom agent som looper gjennom dokumentene og klassifiserer ett om gangen",
+      "Send them all as regular real-time calls at once, so the whole job finishes as fast as possible",
+      "Use the Batch API — asynchronous processing at lower cost when you can tolerate some delay",
+      "Build one big prompt with all the documents, so you avoid the per-call overhead",
+      "Run a single autonomous agent that loops through the documents and classifies one at a time",
     ],
     c: 1,
-    e: "Match arbeidsmengdens form til API-modusen. Batch API bytter latens mot lavere kostnad — perfekt for stort volum av uavhengige oppgaver uten hastekrav. (Sjekk gjeldende rabatt i live-docs.)",
+    e: "Match the shape of the workload to the API mode. The Batch API trades latency for lower cost — perfect for high volume of independent tasks with no urgency. (Check the current discount in the live docs.)",
   },
   {
     d: "d1",
-    q: "Du designer for «graceful failure» når en agent ikke klarer å fullføre. Hva er beste mønster?",
+    q: "You're designing for graceful failure when an agent can't complete. What's the best pattern?",
     a: [
-      "La agenten fortsette å prøve på nytt til den til slutt klarer å fullføre oppgaven",
-      "La agenten svare som om den lyktes, slik at brukeren ikke merker at noe gikk galt",
-      "Definer en eksplisitt fallback-vei eller eskalering, og returner et delvis resultat",
-      "Krasj prosessen umiddelbart og start hele kjøringen på nytt fra første steg",
+      "Let the agent keep retrying until it eventually manages to complete the task",
+      "Let the agent respond as if it succeeded, so the user doesn't notice anything went wrong",
+      "Define an explicit fallback path or escalation, and return a partial result",
+      "Crash the process immediately and restart the whole run from the first step",
     ],
     c: 2,
-    e: "Et pålitelig system vet hva det skal gjøre når det ikke vet. Eksplisitt fallback + strukturert delresultat slår både uendelig prøving og hallusinert «suksess».",
+    e: "A reliable system knows what to do when it doesn't know. An explicit fallback + a structured partial result beats both infinite retrying and hallucinated 'success.'",
   },
   {
     d: "d1",
-    q: "Når griper du til et orkestrator-arbeider-mønster fremfor én autonom agent?",
+    q: "When do you reach for an orchestrator-worker pattern instead of a single autonomous agent?",
     a: [
-      "Når oppgaven er liten og lineær, så orkestratoren kan styre stegene i fast rekkefølge",
-      "Når deloppgavene er heterogene og hver tjener på en spesialisert arbeider eller parallellitet",
-      "Alltid — orkestrator-arbeider er det mest moderne mønsteret og bør være standardvalget",
-      "Når du vil spare tokens på enkle oppgaver ved å dele dem opp i mindre kall",
+      "When the task is small and linear, so the orchestrator can drive the steps in a fixed order",
+      "When the subtasks are heterogeneous and each benefits from a specialized worker or parallelism",
+      "Always — orchestrator-worker is the most modern pattern and should be the default choice",
+      "When you want to save tokens on simple tasks by splitting them into smaller calls",
     ],
     c: 1,
-    e: "Orkestrator-arbeider lønner seg når du har ulike deloppgaver som hver tjener på en spesialisert arbeider, eller som kan kjøres parallelt. For små lineære oppgaver er det overkill.",
+    e: "Orchestrator-worker pays off when you have distinct subtasks that each benefit from a specialized worker, or that can run in parallel. For small linear tasks it's overkill.",
   },
   {
     d: "d1",
-    q: "En agent kaller verktøy i en loop. Hva hindrer best at kostnaden løper løpsk?",
+    q: "An agent calls tools in a loop. What best prevents the cost from running away?",
     a: [
-      "Velg en billigere modell til agenten og stol på at kostnaden holder seg lav nok",
-      "Sett tak på iterasjoner og et budsjett for token- og verktøykall, med klare stoppbetingelser",
-      "Slå av logging under kjøring, siden logging er en stor del av kostnaden ved lange loops",
-      "Gi agenten færre verktøy å velge mellom, så gjør den færre kall totalt sett",
+      "Pick a cheaper model for the agent and trust that the cost stays low enough",
+      "Cap the iterations and set a budget for tokens and tool calls, with clear stopping conditions",
+      "Turn off logging during the run, since logging is a big part of the cost in long loops",
+      "Give the agent fewer tools to choose from, so it makes fewer calls overall",
     ],
     c: 1,
-    e: "Eksplisitte budsjetter og stoppbetingelser er den arkitektoniske bremsen. Uten tak kan en loop teoretisk kalle verktøy i det uendelige.",
+    e: "Explicit budgets and stopping conditions are the architectural brake. Without a cap, a loop can in theory call tools indefinitely.",
   },
   {
     d: "d1",
-    q: "En agent produserer av og til en ugyldig handling (feil argumenter). Hvilken sikring er mest robust?",
+    q: "An agent occasionally produces an invalid action (wrong arguments). Which safeguard is most robust?",
     a: [
-      "Valider verktøy-input og -output mot et schema, og be om nytt forsøk ved valideringsfeil",
-      "Stol på rå modell-output siden moderne modeller sjelden produserer ugyldige argumenter",
-      "Logg feilen for ettertiden og la agenten fortsette videre uten å rette opp i den",
-      "Bytt til en større modell, som er mindre tilbøyelig til å lage ugyldige handlinger",
+      "Validate tool input and output against a schema, and request a retry on a validation error",
+      "Trust raw model output since modern models rarely produce invalid arguments",
+      "Log the error for the record and let the agent continue without correcting it",
+      "Switch to a larger model, which is less prone to producing invalid actions",
     ],
     c: 0,
-    e: "Guardrails: valider mot schema og re-prompt ved feil. Du behandler modellens output som noe som må verifiseres, ikke som noe du kan stole blindt på.",
+    e: "Guardrails: validate against a schema and re-prompt on error. You treat the model's output as something to be verified, not something you can trust blindly.",
   },
   {
     d: "d1",
-    q: "Når bør du IKKE bruke en autonom agent?",
+    q: "When should you NOT use an autonomous agent?",
     a: [
-      "Når oppgaven er kreativ og åpen, fordi agenter takler ikke oppgaver uten fasitsvar",
-      "Når du trenger et deterministisk og etterprøvbart resultat hver gang",
-      "Når du har mange verktøy tilgjengelig, siden det forvirrer agentens valg av handling",
-      "Når brukeren er teknisk og heller vil styre hvert steg i prosessen selv",
+      "When the task is creative and open-ended, because agents can't handle tasks without a single right answer",
+      "When you need a deterministic, auditable result every time",
+      "When you have many tools available, since that confuses the agent's choice of action",
+      "When the user is technical and would rather drive each step of the process themselves",
     ],
     c: 1,
-    e: "Autonomi koster forutsigbarhet. Trenger du samme reviderbare output hver gang (compliance, faste pipelines), gir en deterministisk flyt mer pålitelighet enn en agent som velger fritt.",
+    e: "Autonomy costs predictability. If you need the same auditable output every time (compliance, fixed pipelines), a deterministic flow gives more reliability than an agent that chooses freely.",
   },
   {
     d: "d1",
-    q: "Å parallellisere uavhengige deloppgaver over flere agenter forbedrer primært hva?",
+    q: "Parallelizing independent subtasks across multiple agents primarily improves what?",
     a: [
-      "Nøyaktigheten på hvert enkelt svar, fordi agentene kan kontrollere hverandres arbeid",
-      "Latens og gjennomstrømning for arbeid som faktisk er uavhengig mellom deloppgavene",
-      "Modellens underliggende kunnskap, siden flere agenter dekker flere fagområder",
-      "Sikkerheten i systemet, fordi arbeidet spres på flere isolerte prosesser",
+      "The accuracy of each individual answer, because the agents can check each other's work",
+      "Latency and throughput for work that is genuinely independent across the subtasks",
+      "The model's underlying knowledge, since more agents cover more subject areas",
+      "The security of the system, because the work is spread across several isolated processes",
     ],
     c: 1,
-    e: "Parallellitet gir deg fart/throughput når oppgavene ikke er avhengige av hverandre. Det gjør ikke hvert enkelt svar mer riktig — det gjør bare at du får mange svar raskere.",
+    e: "Parallelism gives you speed/throughput when the tasks don't depend on each other. It doesn't make each individual answer more correct — it just gets you many answers faster.",
   },
 
   // D2 — Claude Code (7)
   {
     d: "d2",
-    q: "Hva er hovedformålet med en CLAUDE.md-fil i et prosjekt?",
+    q: "What is the main purpose of a CLAUDE.md file in a project?",
     a: [
-      "Lagre API-nøkler, tokens og andre hemmeligheter som prosjektet trenger ved oppstart",
-      "Gi Claude Code vedvarende prosjektkontekst som lastes inn automatisk ved oppstart",
-      "Erstatte prosjektets README slik at sluttbrukere har én fil å forholde seg til",
-      "Definere CI/CD-pipelinen som kjører automatisk når koden pushes til hovedgrenen",
+      "To store API keys, tokens and other secrets the project needs at startup",
+      "To give Claude Code persistent project context that's loaded automatically at startup",
+      "To replace the project's README so end users have a single file to deal with",
+      "To define the CI/CD pipeline that runs automatically when code is pushed to the main branch",
     ],
     c: 1,
-    e: "CLAUDE.md er det persistente kontekstlaget: hvordan dette prosjektet henger sammen, hvilke konvensjoner og kommandoer som gjelder. Aldri legg hemmeligheter der.",
+    e: "CLAUDE.md is the persistent context layer: how this project fits together, which conventions and commands apply. Never put secrets there.",
   },
   {
     d: "d2",
-    q: "Et team på 20 jobber på en monorepo. Hvor bør delte konvensjoner ligge kontra personlige preferanser?",
+    q: "A team of 20 works on a monorepo. Where should shared conventions live versus personal preferences?",
     a: [
-      "Alt i hver enkelt utviklers personlige config, så ingen overstyrer andres oppsett",
-      "Delte konvensjoner i prosjekt-scopet CLAUDE.md committet til repoet, personlige i bruker-scope",
-      "Alt samlet i én global fil på en delt server som hele teamet peker mot",
-      "Konvensjoner trenger ikke skrives ned — erfarne utviklere finner mønsteret av seg selv",
+      "Everything in each developer's personal config, so no one overrides anyone else's setup",
+      "Shared conventions in a project-scoped CLAUDE.md committed to the repo, personal ones in user scope",
+      "Everything in one global file on a shared server that the whole team points at",
+      "Conventions don't need to be written down — experienced developers figure out the pattern on their own",
     ],
     c: 1,
-    e: "Delt og committet = hele teamet får samme kontekst. Bruker-scopet config (f.eks. ~/.claude) holder personlige preferanser private uten å påtvinge dem på andre.",
+    e: "Shared and committed = the whole team gets the same context. User-scoped config (e.g. ~/.claude) keeps personal preferences private without forcing them on others.",
   },
   {
     d: "d2",
-    q: "Hva er hooks i Claude Code til for?",
+    q: "What are hooks in Claude Code for?",
     a: [
-      "Å hjelpe deg å skrive bedre prompts ved å foreslå forbedringer mens du jobber",
-      "Å kjøre deterministiske kommandoer automatisk på bestemte livssyklus-hendelser",
-      "Å koble Claude Code til internett så den kan hente ned oppdaterte pakker selv",
-      "Å lagre samtalehistorikken mellom økter slik at konteksten overlever en omstart",
+      "To help you write better prompts by suggesting improvements as you work",
+      "To run deterministic commands automatically on specific lifecycle events",
+      "To connect Claude Code to the internet so it can fetch updated packages itself",
+      "To save the conversation history between sessions so context survives a restart",
     ],
     c: 1,
-    e: "Hooks er deterministisk automatisering/guardrails knyttet til hendelser. De er kode som kjører garantert — ikke en instruksjon modellen kan velge å ignorere.",
+    e: "Hooks are deterministic automation/guardrails tied to events. They're code that's guaranteed to run — not an instruction the model can choose to ignore.",
   },
   {
     d: "d2",
-    q: "Du vil garantere at ingen redigerer en sensitiv mappe. Beste mekanisme?",
+    q: "You want to guarantee that no one edits a sensitive folder. Best mechanism?",
     a: [
-      "Skrive tydelig i CLAUDE.md at den mappen ikke skal røres under noen omstendighet",
-      "En hook som fanger handlingen og nekter den deterministisk før den får skje",
-      "Be Claude eksplisitt om å la mappen være i fred ved starten av hver økt",
-      "Slette mappen helt og gjenopprette den manuelt når du faktisk trenger den",
+      "Write clearly in CLAUDE.md that the folder must not be touched under any circumstances",
+      "A hook that catches the action and deterministically denies it before it can happen",
+      "Explicitly ask Claude to leave the folder alone at the start of each session",
+      "Delete the folder entirely and restore it manually when you actually need it",
     ],
     c: 1,
-    e: "En prompt-instruksjon er ikke-deterministisk — den kan glippe. En hook som blokkerer handlingen gir en garanti, og er det riktige verktøyet når kravet er absolutt.",
+    e: "A prompt instruction is non-deterministic — it can slip. A hook that blocks the action gives a guarantee, and is the right tool when the requirement is absolute.",
   },
   {
     d: "d2",
-    q: "Hva er MCP-serveroppsett i Claude Code til for?",
+    q: "What is MCP server setup in Claude Code for?",
     a: [
-      "Å hoste Claude-modellen lokalt på maskinen din for å slippe å sende data ut",
-      "Å koble Claude Code til eksterne verktøy og datakilder gjennom en standardisert protokoll",
-      "Å komprimere kontekstvinduet automatisk når en lang samtale begynner å fylles opp",
-      "Å sette opp et nettsidedesign med ferdige komponenter Claude kan bygge videre på",
+      "To host the Claude model locally on your machine so you avoid sending data out",
+      "To connect Claude Code to external tools and data sources through a standardized protocol",
+      "To compress the context window automatically when a long conversation starts to fill up",
+      "To set up a website design with ready-made components Claude can build on",
     ],
     c: 1,
-    e: "MCP standardiserer hvordan Claude Code når ut til eksterne systemer (databaser, API-er, verktøy). Det er «pluggen» mellom modellen og verden utenfor.",
+    e: "MCP standardizes how Claude Code reaches out to external systems (databases, APIs, tools). It's the 'plug' between the model and the outside world.",
   },
   {
     d: "d2",
-    q: "Hvordan beskrives skills best, konseptuelt?",
+    q: "How are skills best described, conceptually?",
     a: [
-      "Tredjeparts språkmodeller du laster ned og kjører ved siden av Claude lokalt",
-      "Pakker med kunnskap som Claude laster inn når de er relevante",
-      "Et betalingsabonnement som låser opp ekstra funksjoner i Claude Code",
-      "En type hook som kjører automatisk før hvert eneste verktøykall",
+      "Third-party language models you download and run alongside Claude locally",
+      "Packages of knowledge that Claude loads in when they're relevant",
+      "A paid subscription that unlocks extra features in Claude Code",
+      "A type of hook that runs automatically before every single tool call",
     ],
     c: 1,
-    e: "Skills er on-demand «mapper» med fremgangsmåte og kontekst som lastes når oppgaven matcher. De utvider hva Claude *vet hvordan* den skal gjøre, uten å fylle konteksten hele tiden.",
+    e: "Skills are on-demand 'folders' of procedure and context that load when the task matches. They expand what Claude *knows how* to do, without filling the context all the time.",
   },
   {
     d: "d2",
-    q: "Compliance-krav: alle AI-endringer i kodebasen må logges og kunne revideres. Beste tilnærming?",
+    q: "Compliance requirement: every AI change to the codebase must be logged and auditable. Best approach?",
     a: [
-      "Stol på at modellen husker å logge hver endring den gjør underveis i arbeidet",
-      "Hooks for deterministisk logging og review-porter, kombinert med begrenset (scoped) tilgang",
-      "Slå av AI-verktøyene helt, siden compliance og automatisering ikke lar seg forene",
-      "Be utviklerne om å skrive ned manuelt hva som ble endret etter hver økt",
+      "Trust that the model remembers to log every change it makes along the way",
+      "Hooks for deterministic logging and review gates, combined with limited (scoped) access",
+      "Turn off the AI tools entirely, since compliance and automation can't be reconciled",
+      "Ask the developers to manually write down what was changed after each session",
     ],
     c: 1,
-    e: "Når kravet er etterprøvbarhet, kan du ikke basere deg på at modellen husker. Hooks gir garantert logging/gating, og scoped tilgang begrenser hva som i det hele tatt kan skje.",
+    e: "When the requirement is auditability, you can't rely on the model remembering. Hooks give guaranteed logging/gating, and scoped access limits what can happen at all.",
   },
 
   // D3 — Prompt engineering (7)
   {
     d: "d3",
-    q: "Hva er den mest pålitelige måten å få maskinlesbar, strukturert output på?",
+    q: "What's the most reliable way to get machine-readable, structured output?",
     a: [
-      "Be modellen i prosa om å svare i JSON, og parse det den returnerer som tekst",
-      "Bruk tool use / structured output med et input_schema som tvinger frem riktig form",
-      "Be om svaret i Markdown og hent ut feltene du trenger fra formateringen",
-      "Sett temperature til 0 og stol på at outputen da blir gyldig JSON hver gang",
+      "Ask the model in prose to respond in JSON, and parse what it returns as text",
+      "Use tool use / structured output with an input_schema that forces the right shape",
+      "Ask for the answer in Markdown and extract the fields you need from the formatting",
+      "Set temperature to 0 and trust that the output is then valid JSON every time",
     ],
     c: 1,
-    e: "Et schema (via tool use / structured output) gir modellen en form å fylle ut, og du får parseable resultat. Å be om JSON i fritekst er mye skjørere i skala.",
+    e: "A schema (via tool use / structured output) gives the model a shape to fill in, and you get a parseable result. Asking for JSON in free text is far more fragile at scale.",
   },
   {
     d: "d3",
-    q: "Hva brukes prefilling av assistent-turen til?",
+    q: "What is prefilling the assistant turn used for?",
     a: [
-      "Å gjøre svaret lengre ved å gi modellen en innledning den kan bygge videre på",
-      "Å styre starten på svaret — for eksempel tvinge JSON ved å prefille en åpningsklamme",
-      "Å skjule system-prompten for modellen så den ikke kan avsløre instruksjonene sine",
-      "Å cache svaret slik at identiske spørsmål senere besvares uten et nytt kall",
+      "To make the answer longer by giving the model an intro it can build on",
+      "To steer the start of the answer — for example forcing JSON by prefilling an opening brace",
+      "To hide the system prompt from the model so it can't reveal its instructions",
+      "To cache the answer so identical questions later are answered without a new call",
     ],
     c: 1,
-    e: "Ved å legge inn starten på assistentens svar styrer du formatet fra første token. Et klassisk grep: prefill «{» for å låse modellen inn i et JSON-svar.",
+    e: "By seeding the start of the assistant's reply you steer the format from the first token. A classic trick: prefill '{' to lock the model into a JSON answer.",
   },
   {
     d: "d3",
-    q: "Hva er XML-tagger i prompten primært gode til?",
+    q: "What are XML tags in the prompt primarily good for?",
     a: [
-      "Å gjøre prompten penere å se på uten å påvirke hvordan modellen tolker den",
-      "Å avgrense input så modellen skiller instruksjoner, kontekst og data",
-      "Å spare tokens, fordi tagger komprimerer teksten modellen må lese gjennom",
-      "Å aktivere verktøybruk, siden modellen kjenner igjen tagger som verktøykall",
+      "Making the prompt nicer to look at without affecting how the model interprets it",
+      "Delimiting the input so the model separates instructions, context and data",
+      "Saving tokens, because tags compress the text the model has to read through",
+      "Enabling tool use, since the model recognizes tags as tool calls",
     ],
     c: 1,
-    e: "Tydelige delimitere (som <context>…</context>) hjelper modellen å vite hva som er hva. Det reduserer at den blander sammen instruksjonen din med dataene du limte inn.",
+    e: "Clear delimiters (like <context>…</context>) help the model know what's what. It reduces the chance it mixes up your instruction with the data you pasted in.",
   },
   {
     d: "d3",
-    q: "Hvor hører varige rolle- og atferdsinstruksjoner hjemme?",
+    q: "Where do durable role and behavior instructions belong?",
     a: [
-      "I hver eneste brukermelding, så modellen blir minnet på reglene hver gang",
-      "I system-prompten; brukermeldingen bærer den konkrete oppgaven",
-      "I et eget verktøy modellen kaller for å hente reglene når den trenger dem",
-      "I CLAUDE.md, som gjelder uansett hvilken kontekst kallet kjører i",
+      "In every single user message, so the model is reminded of the rules each time",
+      "In the system prompt; the user message carries the concrete task",
+      "In a dedicated tool the model calls to fetch the rules when it needs them",
+      "In CLAUDE.md, which applies regardless of what context the call runs in",
     ],
     c: 1,
-    e: "System-prompten setter de stabile rammene (hvem modellen er og hvilke regler som gjelder). Brukermeldingen er den spesifikke oppgaven eller inputen for akkurat dette kallet.",
+    e: "The system prompt sets the stable frame (who the model is and which rules apply). The user message is the specific task or input for this particular call.",
   },
   {
     d: "d3",
-    q: "Når gir prompt caching mest verdi?",
+    q: "When does prompt caching give the most value?",
     a: [
-      "På korte, unike prompts som aldri gjentas, der hvert kall er helt forskjellig",
-      "På stort, stabilt prefiks-innhold som gjenbrukes uendret på tvers av mange kall",
-      "Bare på bilder og annet binærinnhold, ikke på vanlig tekst i prompten",
-      "Når du vil ha mer kreative svar ved å gjenbruke tidligere genererte svar",
+      "On short, unique prompts that never repeat, where every call is completely different",
+      "On large, stable prefix content that's reused unchanged across many calls",
+      "Only on images and other binary content, not on regular text in the prompt",
+      "When you want more creative answers by reusing previously generated answers",
     ],
     c: 1,
-    e: "Caching lønner seg når du sender det samme tunge prefikset (langt system-prompt, dokumenter) gang på gang — da slipper du å betale full pris for det hver gang. (Sjekk gjeldende vilkår i live-docs.)",
+    e: "Caching pays off when you send the same heavy prefix (a long system prompt, documents) over and over — then you avoid paying full price for it every time. (Check the current terms in the live docs.)",
   },
   {
     d: "d3",
-    q: "Du svarer på spørsmål basert på vedlagte dokumenter og vil redusere hallusinering. Beste grep?",
+    q: "You're answering questions based on attached documents and want to reduce hallucination. Best move?",
     a: [
-      "Be modellen være mer selvsikker, så den slutter å nøle og gjette på svarene",
-      "Instruer den til å svare kun fra gitt kontekst, sitere kilden, og si «vet ikke» ved mangel",
-      "Øk temperature for mer variasjon, slik at den finner flere mulige svar å velge fra",
-      "Fjern system-prompten, så modellen ikke begrenses unødig av instruksjonene dine",
+      "Tell the model to be more confident so it stops hesitating and guessing at answers",
+      "Instruct it to answer only from the given context, cite the source, and say 'I don't know' when it's missing",
+      "Increase temperature for more variation, so it finds several possible answers to choose from",
+      "Remove the system prompt so the model isn't unnecessarily constrained by your instructions",
     ],
     c: 1,
-    e: "Grounding: bind svaret til den gitte konteksten, krev sitering, og gi modellen en eksplisitt utvei («vet ikke») når svaret ikke finnes. Da slutter den å dikte.",
+    e: "Grounding: tie the answer to the given context, require citation, and give the model an explicit way out ('I don't know') when the answer isn't there. Then it stops making things up.",
   },
   {
     d: "d3",
-    q: "Når er chain-of-thought / «thinking» mest nyttig?",
+    q: "When is chain-of-thought / 'thinking' most useful?",
     a: [
-      "På enkle oppslag som krever ett kort faktasvar uten noe mellomregning",
-      "På flerstegs resonneringsoppgaver der modellen trenger å tenke før svar",
-      "Når du vil gjøre svaret kortere ved å la modellen oppsummere underveis",
-      "Aldri — eksplisitt resonnering sløser bare tokens uten å gjøre svaret bedre",
+      "On simple lookups that need one short factual answer with no intermediate work",
+      "On multi-step reasoning tasks where the model needs to think before answering",
+      "When you want to make the answer shorter by letting the model summarize along the way",
+      "Never — explicit reasoning just wastes tokens without making the answer better",
     ],
     c: 1,
-    e: "Eksplisitt resonnering hjelper på oppgaver med flere steg. Du kan også skille tenkingen fra det endelige, strukturerte svaret slik at brukeren bare ser konklusjonen.",
+    e: "Explicit reasoning helps on multi-step tasks. You can also separate the thinking from the final, structured answer so the user sees only the conclusion.",
   },
 
   // D4 — Tool/MCP (7)
   {
     d: "d4",
-    q: "Hva kjennetegner en god verktøy-beskrivelse (tool description)?",
+    q: "What characterizes a good tool description?",
     a: [
-      "Så kort som overhodet mulig, helst bare navnet, for å spare plass i konteksten",
-      "Tydelig på hva verktøyet gjør OG når det skal brukes, med godt typede, beskrevne parametere",
-      "En grundig teknisk beskrivelse av hvordan verktøyet er implementert under panseret",
-      "Ingen beskrivelse er nødvendig så lenge navnet på verktøyet er beskrivende nok",
+      "As short as possible, ideally just the name, to save space in the context",
+      "Clear on what the tool does AND when to use it, with well-typed, described parameters",
+      "A thorough technical description of how the tool is implemented under the hood",
+      "No description is needed as long as the tool's name is descriptive enough",
     ],
     c: 1,
-    e: "Modellen velger verktøy basert på beskrivelsen. «Hva gjør det + når brukes det + tydelige parametere» gir riktig valg og riktige argumenter. Vage beskrivelser gir feil kall.",
+    e: "The model picks tools based on the description. 'What it does + when to use it + clear parameters' produces the right choice and the right arguments. Vague descriptions produce wrong calls.",
   },
   {
     d: "d4",
-    q: "Hva er MCP, i én setning?",
+    q: "What is MCP, in one sentence?",
     a: [
-      "En egen Claude-modell spesialisert for koding og verktøybruk i terminalen",
-      "En åpen protokoll som standardiserer hvordan apper gir modeller kontekst og verktøy",
-      "Et betalingssystem som måler og fakturerer API-bruk på tvers av verktøy",
-      "Et frontend-rammeverk for å bygge brukergrensesnitt rundt språkmodeller",
+      "A dedicated Claude model specialized for coding and tool use in the terminal",
+      "An open protocol that standardizes how apps give models context and tools",
+      "A billing system that meters and invoices API usage across tools",
+      "A frontend framework for building user interfaces around language models",
     ],
     c: 1,
-    e: "Model Context Protocol er den standardiserte «pluggen» (ofte sammenlignet med USB-C for AI) mellom en host-app og verktøy/datakilder den eksponerer.",
+    e: "The Model Context Protocol is the standardized 'plug' (often compared to USB-C for AI) between a host app and the tools/data sources it exposes.",
   },
   {
     d: "d4",
-    q: "Hva er rollen til et verktøys input-schema?",
+    q: "What is the role of a tool's input schema?",
     a: [
-      "Å dokumentere verktøyet for menneskene som skal lese koden senere",
-      "Å begrense og validere argumentene (JSON schema) så modellen produserer gyldige kall",
-      "Å bestemme hvilken modell som skal håndtere kallet når verktøyet brukes",
-      "Å cache resultatet av verktøykallet så identiske kall slipper å kjøre på nytt",
+      "To document the tool for the humans who'll read the code later",
+      "To constrain and validate the arguments (JSON schema) so the model produces valid calls",
+      "To decide which model should handle the call when the tool is used",
+      "To cache the result of the tool call so identical calls don't have to run again",
     ],
     c: 1,
-    e: "Schemaet er kontrakten for argumentene. Det reduserer ugyldige handlinger ved å gjøre det tydelig — og maskinelt verifiserbart — hva et gyldig kall ser ut som.",
+    e: "The schema is the contract for the arguments. It reduces invalid actions by making it clear — and machine-verifiable — what a valid call looks like.",
   },
   {
     d: "d4",
-    q: "En MCP-server eksponerer kraftige handlinger (slett, overfør penger). Beste praksis?",
+    q: "An MCP server exposes powerful actions (delete, transfer money). Best practice?",
     a: [
-      "Eksponer alle handlinger åpent, slik at modellen står helt fritt til å løse oppgaven",
-      "Begrens og scope tilgangen, krev auth, gi minste privilegium og bekreft destruktive handlinger",
-      "Stol på at modellen aldri velger å utføre noe farlig uten en god grunn til det",
-      "Skjul de farlige verktøyene ved å utelate dem fra beskrivelsen modellen ser",
+      "Expose all actions openly so the model is completely free to solve the task",
+      "Limit and scope access, require auth, grant least privilege, and confirm destructive actions",
+      "Trust that the model never chooses to do anything dangerous without a good reason",
+      "Hide the dangerous tools by leaving them out of the description the model sees",
     ],
     c: 1,
-    e: "Minste privilegium og eksplisitt bekreftelse på destruktive handlinger. Du designer for at noe kan gå galt — ikke for at modellen alltid oppfører seg.",
+    e: "Least privilege and explicit confirmation on destructive actions. You design for things going wrong — not for the model always behaving.",
   },
   {
     d: "d4",
-    q: "I MCP: hva gjør host-/klientsiden, og hva eksponerer verktøyene?",
+    q: "In MCP: what does the host/client side do, and what exposes the tools?",
     a: [
-      "Serveren kobler seg til klienter, som er de som faktisk leverer selve modellen",
-      "Host/klient kobler seg til servere; serverne eksponerer verktøyene og ressursene",
-      "Begge sider gjør det samme — skillet er bare et navn uten praktisk betydning",
-      "Klienten eksponerer verktøyene, mens serveren kjører selve språkmodellen",
+      "The server connects to clients, which are the ones that actually provide the model itself",
+      "The host/client connects to servers; the servers expose the tools and resources",
+      "Both sides do the same thing — the distinction is just a name with no practical meaning",
+      "The client exposes the tools, while the server runs the language model itself",
     ],
     c: 1,
-    e: "Host-appen (klienten) kobler seg til én eller flere MCP-servere. Det er serverne som tilbyr verktøyene og ressursene modellen kan bruke.",
+    e: "The host app (the client) connects to one or more MCP servers. It's the servers that offer the tools and resources the model can use.",
   },
   {
     d: "d4",
-    q: "Du har laget mange overlappende verktøy. Hva er hovedrisikoen?",
+    q: "You've built many overlapping tools. What's the main risk?",
     a: [
-      "Høyere serverkostnad, fordi hvert ekstra verktøy må holdes kjørende hele tiden",
-      "Modellen velger feil verktøy — hold dem distinkte, godt avgrenset og tydelig navngitt",
-      "Tregere svar, siden modellen må laste inn alle verktøyene før hvert eneste kall",
-      "Ingen reell risiko — jo flere verktøy modellen har, jo bedre løser den oppgaver",
+      "Higher server cost, because each extra tool has to be kept running all the time",
+      "The model picks the wrong tool — keep them distinct, well-scoped and clearly named",
+      "Slower responses, since the model has to load all the tools before every single call",
+      "No real risk — the more tools the model has, the better it solves tasks",
     ],
     c: 1,
-    e: "Overlappende verktøy forvirrer valget. Få, distinkte og tydelig navngitte verktøy gir mer pålitelig seleksjon enn et stort, uklart arsenal.",
+    e: "Overlapping tools confuse the choice. Few, distinct, clearly named tools give more reliable selection than a large, fuzzy arsenal.",
   },
   {
     d: "d4",
-    q: "Et verktøy returnerer en enorm payload. Hva er den arkitektoniske bekymringen?",
+    q: "A tool returns an enormous payload. What's the architectural concern?",
     a: [
-      "Det ser rotete ut i loggen, men påvirker ikke hvordan modellen faktisk jobber",
-      "Det spiser kontekst og tokens — returner bare det som trengs, paginer eller oppsummer",
-      "Ingenting — mer data gjør alltid at modellen svarer raskere og mer presist",
-      "Modellen ignorerer automatisk det den ikke trenger, så størrelsen er uvesentlig",
+      "It looks messy in the log, but doesn't affect how the model actually works",
+      "It eats context and tokens — return only what's needed, paginate or summarize",
+      "Nothing — more data always makes the model respond faster and more precisely",
+      "The model automatically ignores what it doesn't need, so the size is irrelevant",
     ],
     c: 1,
-    e: "Alt verktøyet returnerer havner i konteksten og koster tokens og fokus. Returner det relevante, paginer eller oppsummer — ikke dump rådata.",
+    e: "Everything the tool returns ends up in the context and costs tokens and focus. Return what's relevant, paginate or summarize — don't dump raw data.",
   },
 
   // D5 — Context (5)
   {
     d: "d5",
-    q: "En lang samtale begynner å degradere fordi kontekstvinduet fylles opp. Beste strategi?",
+    q: "A long conversation starts to degrade because the context window is filling up. Best strategy?",
     a: [
-      "Send hele historikken uendret hver gang, så ingenting viktig noensinne går tapt",
-      "Oppsummer og komprimer eldre turer, behold det relevante og kast støyen",
-      "Start en helt ny samtale ved hver melding for å holde konteksten kortest mulig",
-      "Bytt til en mindre modell, som håndterer lange samtaler mer effektivt",
+      "Send the entire history unchanged every time, so nothing important is ever lost",
+      "Summarize and compress older turns, keep what's relevant and drop the noise",
+      "Start a brand-new conversation at every message to keep the context as short as possible",
+      "Switch to a smaller model, which handles long conversations more efficiently",
     ],
     c: 1,
-    e: "Aktiv context management: hold det som betyr noe, komprimer eller dropp resten. Å bare dytte alt inn fyller vinduet med støy og svekker svarene.",
+    e: "Active context management: keep what matters, compress or drop the rest. Just shoving everything in fills the window with noise and weakens the answers.",
   },
   {
     d: "d5",
-    q: "Hva er hovedhensikten med RAG (retrieval-augmented generation)?",
+    q: "What is the main purpose of RAG (retrieval-augmented generation)?",
     a: [
-      "Å gjøre modellen raskere ved å hente svar fra et hurtigminne i stedet for å resonnere",
-      "Å hente relevant ekstern kunnskap inn i konteksten ved spørretid, så svaret grunnes i kilder",
-      "Å erstatte system-prompten med dokumenter som styrer modellens oppførsel",
-      "Å trene modellen på nytt på dine data så kunnskapen bakes permanent inn",
+      "To make the model faster by fetching answers from a cache instead of reasoning",
+      "To pull relevant external knowledge into the context at query time, so the answer is grounded in sources",
+      "To replace the system prompt with documents that drive the model's behavior",
+      "To retrain the model on your data so the knowledge is baked in permanently",
     ],
     c: 1,
-    e: "RAG henter bare det relevante fra et stort korpus og legger det i konteksten når det trengs — slik kommer du forbi vindusgrensen og grunner svaret i faktiske kilder.",
+    e: "RAG retrieves only the relevant part of a large corpus and puts it in the context when needed — that's how you get past the window limit and ground the answer in actual sources.",
   },
   {
     d: "d5",
-    q: "Hvor bør de viktigste instruksjonene plasseres i en veldig lang kontekst?",
+    q: "Where should the most important instructions be placed in a very long context?",
     a: [
-      "Midt inne i den største databolken, der modellen leser aller mest grundig",
-      "Tydelig fremme, gjerne forsterket — ikke begravd midt inne i en enorm kontekst",
-      "Plasseringen spiller ingen rolle — modellen vekter all kontekst nøyaktig likt",
-      "Helt til slutt, etter alle dataene, siden modellen husker det den leste sist best",
+      "In the middle of the biggest chunk of data, where the model reads most carefully",
+      "Clearly up front, ideally reinforced — not buried in the middle of an enormous context",
+      "Placement doesn't matter — the model weights all context exactly equally",
+      "Right at the end, after all the data, since the model remembers what it read last best",
     ],
     c: 1,
-    e: "Posisjon betyr noe. Kritiske instruksjoner hører fremme, og kan gjentas/forsterkes. Begraves de midt i et hav av data, er sjansen større for at de mistes.",
+    e: "Position matters. Critical instructions belong up front, and can be repeated/reinforced. Buried in a sea of data, they're more likely to be missed.",
   },
   {
     d: "d5",
-    q: "Hva betyr token-budsjettering i en flerstegs-workflow?",
+    q: "What does token budgeting mean in a multi-step workflow?",
     a: [
-      "Å betale for et visst antall tokens på forhånd for å låse en lavere pris per kall",
-      "Å fordele konteksten bevisst — input, resonnering og output — og trimme mellom steg",
-      "Å bruke færrest mulig modeller i kjeden for å holde det totale token-forbruket nede",
-      "Å sette max_tokens til høyeste mulige verdi så svaret aldri blir kuttet av",
+      "Paying for a certain number of tokens up front to lock in a lower price per call",
+      "Deliberately allocating the context — input, reasoning and output — and trimming between steps",
+      "Using as few models as possible in the chain to keep total token consumption down",
+      "Setting max_tokens to the highest possible value so the answer is never cut off",
     ],
     c: 1,
-    e: "Du behandler konteksten som et budsjett du fordeler med vilje gjennom stegene, og rydder mellom dem. Ellers vokser den til den treffer taket og bryter sammen.",
+    e: "You treat the context as a budget you allocate deliberately across the steps, and clean up between them. Otherwise it grows until it hits the ceiling and breaks down.",
   },
   {
     d: "d5",
-    q: "Hvorfor cache et stabilt prefiks i konteksten?",
+    q: "Why cache a stable prefix in the context?",
     a: [
-      "For å gjøre svarene mer kreative ved å gjenbruke tidligere formuleringer på nytt",
-      "For å kutte gjentatt kostnad og latens på innhold som ikke endrer seg mellom kall",
-      "For å utvide kontekstvinduet utover modellens vanlige øvre grense",
-      "For å unngå verktøybruk ved å hente svaret fra cache i stedet for å kalle",
+      "To make answers more creative by reusing earlier phrasings",
+      "To cut repeated cost and latency on content that doesn't change between calls",
+      "To extend the context window beyond the model's usual upper limit",
+      "To avoid tool use by fetching the answer from cache instead of calling",
     ],
     c: 1,
-    e: "Et uendret prefiks (langt system-prompt, faste dokumenter) som sendes gang på gang trenger ikke betales for på nytt hver gang — caching kutter både kostnad og ventetid.",
+    e: "An unchanged prefix (a long system prompt, fixed documents) sent over and over doesn't need to be paid for again each time — caching cuts both cost and latency.",
   },
 
-  /* ===== Utvidet sett ===== */
+  /* ===== Extended set ===== */
 
-  // D1 — Agentic (10 til)
+  // D1 — Agentic (10 more)
   {
     d: "d1",
-    q: "En kompleks oppgave har flere klart adskilte steg. Hva gir mest pålitelig resultat?",
+    q: "A complex task has several clearly separate steps. What gives the most reliable result?",
     a: [
-      "Ett stort prompt som ber modellen utføre alle stegene samtidig i ett enkelt kall",
-      "Prompt chaining — del opp i diskrete steg der hvert har avgrenset ansvar og kan valideres",
-      "La en autonom agent improvisere fritt gjennom stegene uten noen fast struktur",
-      "Kjør samme prompt mange ganger og la flertallet av svarene avgjøre resultatet",
+      "One big prompt that asks the model to do all the steps at once in a single call",
+      "Prompt chaining — break it into discrete steps, each with scoped responsibility and validatable",
+      "Let an autonomous agent improvise freely through the steps with no fixed structure",
+      "Run the same prompt many times and let the majority of answers decide the result",
     ],
     c: 1,
-    e: "Prompt chaining bytter litt latens mot mye pålitelighet: hvert steg er enklere, lettere å verifisere, og feil fanges der de oppstår i stedet for å forplante seg gjennom ett uoversiktlig kall.",
-  },
-  {
-    d: "d1",
-    q: "Du vil heve kvaliteten på et generert utkast automatisk. Hvilket mønster passer?",
-    a: [
-      "Generer ti utkast i parallell og velg det lengste som det mest grundige svaret",
-      "Evaluator-optimizer — én rolle genererer, en annen kritiserer i loop",
-      "Øk temperature til maks så modellen blir mer kreativ i hvert nytt forsøk",
-      "Be modellen bekrefte at utkastet er bra nok før den leverer det fra seg",
-    ],
-    c: 1,
-    e: "Generator-kritiker-loopen lønner seg når kvalitet kan måles mot klare kriterier. Kritikken gir konkret, handlingsbar tilbakemelding som neste iterasjon retter etter — med en stoppbetingelse så det ikke looper i det uendelige.",
+    e: "Prompt chaining trades a little latency for a lot of reliability: each step is simpler, easier to verify, and errors are caught where they occur instead of propagating through one unwieldy call.",
   },
   {
     d: "d1",
-    q: "Innkommende forespørsler er svært ulike (faktura, klage, teknisk spørsmål). Hva er et godt mønster?",
+    q: "You want to raise the quality of a generated draft automatically. Which pattern fits?",
     a: [
-      "Ett felles prompt som forsøker å behandle alle forespørselstypene på helt lik måte",
-      "Routing — klassifiser input først, og send så til en håndtering spesialisert for hver type",
-      "Avvis alt som ikke er en faktura, og be brukeren omformulere resten av forespørslene",
-      "Kjør alle håndteringene parallelt på hver forespørsel og slå sammen alle svarene",
+      "Generate ten drafts in parallel and pick the longest as the most thorough answer",
+      "Evaluator-optimizer — one role generates, another critiques in a loop",
+      "Crank temperature to max so the model gets more creative on each new attempt",
+      "Ask the model to confirm the draft is good enough before it hands it over",
     ],
     c: 1,
-    e: "Routing skiller klassifisering fra håndtering. Hver type får en prompt/flyt skreddersydd for seg, i stedet for ett generelt prompt som gjør alt halvgodt.",
+    e: "The generator-critic loop pays off when quality can be measured against clear criteria. The critique gives concrete, actionable feedback that the next iteration corrects against — with a stopping condition so it doesn't loop forever.",
   },
   {
     d: "d1",
-    q: "En agent kan utføre en irreversibel handling (f.eks. sende penger). Hvor bør et human-in-the-loop-sjekkpunkt ligge?",
+    q: "Incoming requests are very different (invoice, complaint, technical question). What's a good pattern?",
     a: [
-      "Etter at handlingen er utført, som en logg over det agenten faktisk gjorde",
-      "Før den irreversible handlingen utføres — krev eksplisitt godkjenning akkurat der",
-      "Det trengs ikke noe sjekkpunkt så lenge modellen er stor og kapabel nok",
-      "Bare hvis brukeren uttrykkelig ber om å få godkjenne handlinger på forhånd",
+      "One shared prompt that tries to handle all the request types in exactly the same way",
+      "Routing — classify the input first, then send it to a handler specialized for each type",
+      "Reject anything that isn't an invoice, and ask the user to rephrase the rest of the requests",
+      "Run all the handlers in parallel on each request and merge all the answers",
     ],
     c: 1,
-    e: "Sjekkpunktet hører foran det irreversible steget. Godkjenning i etterkant er bare en logg over noe du ikke lenger kan stoppe.",
+    e: "Routing separates classification from handling. Each type gets a prompt/flow tailored to it, instead of one general prompt that does everything halfway.",
   },
   {
     d: "d1",
-    q: "En forretningsregel MÅ gjelde hver gang, uten unntak. Hvor legger du den?",
+    q: "An agent can perform an irreversible action (e.g. send money). Where should a human-in-the-loop checkpoint go?",
     a: [
-      "I prompten, formulert tydelig nok til at modellen følger den hver eneste gang",
-      "I deterministisk kode rundt modellen, ikke overlatt til modellens eget skjønn",
-      "Som et eksempel i prompten som modellen kan etterligne i lignende tilfeller",
-      "I CLAUDE.md, der den lastes inn automatisk og dermed alltid gjelder for kallet",
+      "After the action is performed, as a log of what the agent actually did",
+      "Before the irreversible action is performed — require explicit approval right there",
+      "No checkpoint is needed as long as the model is large and capable enough",
+      "Only if the user explicitly asks to approve actions in advance",
     ],
     c: 1,
-    e: "Skal noe gjelde absolutt, kan det ikke overlates til en sannsynlighetsmodell. Kritiske regler hører i kode; modellen brukes der skjønn faktisk er ønsket.",
+    e: "The checkpoint belongs in front of the irreversible step. Approval after the fact is just a log of something you can no longer stop.",
   },
   {
     d: "d1",
-    q: "I en agent-loop — hva er riktig rekkefølge per steg?",
+    q: "A business rule MUST apply every time, without exception. Where do you put it?",
     a: [
-      "Kall flere verktøy fortløpende og les alle resultatene samlet til slutt i loopen",
-      "Observer forrige verktøyresultat, resonner, og velg neste handling — så gjenta",
-      "Velg alle handlingene på forhånd og kjør dem gjennom i en fast rekkefølge",
-      "Hopp over resultatet fra forrige kall og gå rett videre til det neste kallet",
+      "In the prompt, worded clearly enough that the model follows it every single time",
+      "In deterministic code around the model, not left to the model's own judgment",
+      "As an example in the prompt that the model can imitate in similar cases",
+      "In CLAUDE.md, where it's loaded automatically and therefore always applies to the call",
     ],
     c: 1,
-    e: "En fungerende agent-loop er observer → tenk → handle. Å fyre av neste kall uten å lese forrige resultat er å handle i blinde — da kan ikke agenten korrigere kurs.",
+    e: "If something must hold absolutely, it can't be left to a probabilistic model. Critical rules belong in code; the model is used where judgment is actually wanted.",
   },
   {
     d: "d1",
-    q: "Et verktøy en agent bruker har sideeffekter og kan bli kalt på nytt ved retry. Hva bør du designe for?",
+    q: "In an agent loop — what's the correct order per step?",
     a: [
-      "At verktøyet er bygget så solid at det aldri feiler og dermed aldri trenger retry",
-      "Idempotens — at gjentatt kall med samme input er trygt og ikke dobler effekten",
-      "At agenten konfigureres til aldri å prøve et feilet verktøykall på nytt igjen",
-      "At brukeren rydder opp manuelt dersom en handling skulle bli utført to ganger",
+      "Call several tools in sequence and read all the results together at the end of the loop",
+      "Observe the previous tool result, reason, and choose the next action — then repeat",
+      "Choose all the actions in advance and run them through in a fixed order",
+      "Skip the result from the previous call and go straight to the next call",
     ],
     c: 1,
-    e: "Retries skjer. Designer du sideeffekt-verktøy idempotente (f.eks. med en unik nøkkel per operasjon), blir en gjentakelse ufarlig i stedet for at du sender pengene to ganger.",
+    e: "A working agent loop is observe → think → act. Firing off the next call without reading the previous result is acting blind — the agent can't course-correct then.",
   },
   {
     d: "d1",
-    q: "Hvordan opprettholder du tilstand på tvers av turer i en agent-flyt?",
+    q: "A tool an agent uses has side effects and may be called again on retry. What should you design for?",
     a: [
-      "Modellen husker selv det som ble sagt tidligere i samtalen mellom hvert kall",
-      "Du sender relevant tilstand og historikk eksplisitt inn i hvert kall — modellen er statsløs",
-      "Tilstanden lagres automatisk i modellens vekter etter hvert som samtalen utvikler seg",
-      "Det er ikke mulig å holde på tilstand i en agent over flere turer i praksis",
+      "Building the tool so robustly that it never fails and therefore never needs a retry",
+      "Idempotency — that a repeated call with the same input is safe and doesn't double the effect",
+      "Configuring the agent to never retry a failed tool call again",
+      "Having the user clean up manually if an action gets performed twice",
     ],
     c: 1,
-    e: "Modellen har ikke minne mellom kall. All tilstand du trenger videre må du føre med deg eksplisitt i konteksten for neste kall.",
+    e: "Retries happen. If you design side-effecting tools to be idempotent (e.g. with a unique key per operation), a repeat becomes harmless instead of sending the money twice.",
   },
   {
     d: "d1",
-    q: "En subagent gjør et stort stykke arbeid. Hva bør den returnere til orkestratoren?",
+    q: "How do you maintain state across turns in an agent flow?",
     a: [
-      "Hele sin egen samtale-transkripsjon, så orkestratoren ser alt som skjedde underveis",
-      "Et fokusert sammendrag eller resultat — ikke hele sin interne kontekst",
-      "Ingenting — orkestratoren gjetter resultatet ut fra oppgaven den opprinnelig ga",
-      "Alle mellomregninger råe, slik at ingenting går tapt på veien tilbake",
+      "The model remembers on its own what was said earlier in the conversation between each call",
+      "You pass the relevant state and history explicitly into each call — the model is stateless",
+      "State is stored automatically in the model's weights as the conversation develops",
+      "It isn't possible in practice to retain state in an agent across multiple turns",
     ],
     c: 1,
-    e: "Poenget med isolerte subagenter forsvinner hvis de dumper hele konteksten sin tilbake. La dem returnere et komprimert resultat så orkestratorens kontekst holder seg ren.",
+    e: "The model has no memory between calls. Any state you need going forward you must carry explicitly in the context for the next call.",
   },
   {
     d: "d1",
-    q: "Du har en enkel klassifisering og en tung resonneringsoppgave i samme system. Smart kostnadsgrep?",
+    q: "A subagent does a big piece of work. What should it return to the orchestrator?",
     a: [
-      "Bruk den største modellen til alt, så er du sikker på god kvalitet overalt i systemet",
-      "Bruk en mindre, raskere modell til det enkle og reserver den store til det tunge",
-      "Bruk den minste modellen til alt og aksepter litt lavere kvalitet på det tunge",
-      "Bytt modell tilfeldig per kall for å fordele belastningen jevnt utover systemet",
+      "Its entire conversation transcript, so the orchestrator sees everything that happened along the way",
+      "A focused summary or result — not its entire internal context",
+      "Nothing — the orchestrator guesses the result from the task it originally gave",
+      "All intermediate work raw, so nothing is lost on the way back",
     ],
     c: 1,
-    e: "Match modellstørrelse til oppgavens vanskelighet. Å sende triviell ruting gjennom den dyreste modellen er sløsing; spar kraften til stegene som trenger den.",
-  },
-
-  // D2 — Claude Code (7 til)
-  {
-    d: "d2",
-    q: "Hvorfor bør CLAUDE.md holdes kortfattet og høy-signal?",
-    a: [
-      "Fordi lange filer er tungvinte å committe og skaper unødige merge-konflikter i teamet",
-      "Fordi den ligger i konteksten hele tiden — oppblåst innhold koster tokens og uthuler det viktige",
-      "Fordi Claude bare leser de første linjene i filen og hopper over resten uansett",
-      "Det spiller egentlig ingen rolle hvor lang den er, så lenge innholdet faktisk stemmer",
-    ],
-    c: 1,
-    e: "CLAUDE.md er alltid med i konteksten. Fyller du den med alt mulig, drukner de viktige konvensjonene og du betaler tokens for støy hvert eneste kall.",
+    e: "The point of isolated subagents is lost if they dump their entire context back. Have them return a compressed result so the orchestrator's context stays clean.",
   },
   {
-    d: "d2",
-    q: "Du vil delegere en avgrenset deloppgave uten å fylle hovedsamtalen med støy. Hva passer?",
+    d: "d1",
+    q: "You have a simple classification and a heavy reasoning task in the same system. Smart cost move?",
     a: [
-      "Lim alt det relevante inn i hovedsamtalen så Claude har full oversikt hele tiden",
-      "En subagent som løser deloppgaven i egen kontekst og returnerer bare resultatet",
-      "Start hele prosjektet på nytt med deloppgaven som aller første prioritet",
-      "Skru av CLAUDE.md midlertidig så konteksten ikke fylles opp mens du jobber",
+      "Use the largest model for everything, so you're sure of good quality everywhere in the system",
+      "Use a smaller, faster model for the simple part and reserve the large one for the heavy part",
+      "Use the smallest model for everything and accept slightly lower quality on the heavy part",
+      "Switch models randomly per call to spread the load evenly across the system",
     ],
     c: 1,
-    e: "En subagent får sin egen kontekst til deloppgaven og leverer tilbake et resultat. Hovedsamtalen holdes ren for det den faktisk handler om.",
-  },
-  {
-    d: "d2",
-    q: "Hva styrer en permission-/allowlist-konfigurasjon i Claude Code?",
-    a: [
-      "Hvilken modell som brukes, avhengig av hvor følsom den aktuelle oppgaven er",
-      "Hvilke verktøy og kommandoer Claude Code får kjøre uten å spørre om lov først",
-      "Fargetema og generelt utseende i terminalen mens Claude Code kjører økten",
-      "Hvor raskt svaret kommer, ved å prioritere de godkjente kommandoene høyest",
-    ],
-    c: 1,
-    e: "Tillatelser avgjør hva som kan kjøres automatisk versus hva som krever bekreftelse. Det er et sikkerhets- og kontroll-lag, særlig viktig i team og automatiserte oppsett.",
-  },
-  {
-    d: "d2",
-    q: "Du har konvensjoner som gjelder hele repoet, og noen som bare gjelder én undermappe. Hvordan løses det best?",
-    a: [
-      "Alt samlet i én CLAUDE.md i roten, med tydelige overskrifter for hver enkelt mappe",
-      "CLAUDE.md i roten for det felles, og en mer spesifikk i undermappen for det lokale",
-      "Gjenta hele konvensjonssettet i en egen CLAUDE.md i hver eneste mappe i repoet",
-      "Legg undermappe-reglene som kommentarer i koden der de faktisk skal gjelde",
-    ],
-    c: 1,
-    e: "CLAUDE.md-er kan ligge i et hierarki. Det generelle hører i roten; det som bare gjelder en del av kodebasen legges nærmere der det gjelder.",
-  },
-  {
-    d: "d2",
-    q: "Hva er et plugin i Claude Code, konseptuelt?",
-    a: [
-      "En enkelt gjenbrukbar prompt du kan kalle opp med en kort kommando ved behov",
-      "En pakke som samler kommandoer, subagenter, hooks og/eller MCP-oppsett for distribusjon",
-      "En betalingsplan som låser opp ekstra kapasitet og funksjoner i Claude Code",
-      "En modellvariant optimalisert for et bestemt programmeringsspråk eller rammeverk",
-    ],
-    c: 1,
-    e: "Et plugin bunter sammen relatert funksjonalitet (kommandoer, agenter, hooks, MCP) slik at et team kan installere og dele et helt oppsett i én pakke.",
-  },
-  {
-    d: "d2",
-    q: "Et MCP-serveroppsett skal være tilgjengelig for hele teamet i ett bestemt prosjekt. Hvilket scope?",
-    a: [
-      "Bruker-scope, som gir deg serveren tilgjengelig på tvers av alle prosjektene dine",
-      "Prosjekt-scope committet til repoet, så alle på prosjektet får serveren der den hører hjemme",
-      "Et globalt scope på maskinen som ingen andre i teamet kan endre i ettertid",
-      "MCP-servere kan ikke deles, og må settes opp av hver enkelt utvikler på nytt",
-    ],
-    c: 1,
-    e: "Prosjekt-scope committet til repoet gir hele teamet samme MCP-server akkurat der den hører hjemme. Bruker-scope ville bare gitt det til deg.",
-  },
-  {
-    d: "d2",
-    q: "Hva er den praktiske forskjellen på en hook og en instruksjon i CLAUDE.md?",
-    a: [
-      "Ingen reell forskjell — begge styrer oppførselen til Claude Code på akkurat samme måte",
-      "En hook er kode som kjører garantert; CLAUDE.md er veiledning modellen kan avvike fra",
-      "CLAUDE.md kjører kode automatisk, mens en hook bare er ren tekst modellen leser",
-      "Hooks gjelder kun designoppgaver, mens CLAUDE.md gjelder kun rene kodeoppgaver",
-    ],
-    c: 1,
-    e: "Trenger du en garanti, bruk en hook — den kjører uansett. CLAUDE.md former oppførsel, men er fortsatt instruksjoner en sannsynlighetsmodell kan tolke eller glippe på.",
+    e: "Match model size to task difficulty. Sending trivial routing through the most expensive model is wasteful; save the horsepower for the steps that need it.",
   },
 
-  // D3 — Prompt engineering (7 til)
+  // D2 — Claude Code (7 more)
   {
-    d: "d3",
-    q: "Du vil ha konsistent format og oppførsel på et vanskelig kanttilfelle. Hva hjelper mest?",
+    d: "d2",
+    q: "Why should CLAUDE.md be kept concise and high-signal?",
     a: [
-      "Be modellen om å «være nøyaktig» og passe ekstra godt på de vanskelige spesialtilfellene",
-      "Few-shot — vis noen konkrete eksempler på ønsket input→output, inkludert kanttilfellet",
-      "Skru opp temperature så modellen utforsker flere måter å håndtere tilfellet på",
-      "Gjør prompten kortere så modellen ikke distraheres av for mange detaljer på en gang",
+      "Because long files are cumbersome to commit and create unnecessary merge conflicts on the team",
+      "Because it sits in the context all the time — bloated content costs tokens and dilutes what matters",
+      "Because Claude only reads the first lines of the file and skips the rest anyway",
+      "It doesn't really matter how long it is, as long as the content is actually correct",
     ],
     c: 1,
-    e: "Eksempler styrer sterkere enn forklaringer. Et par gode few-shot-eksempler — særlig av det vanskelige tilfellet — viser modellen presist hva du vil ha, i stedet for at den må gjette.",
+    e: "CLAUDE.md is always in the context. If you fill it with everything, the important conventions drown and you pay tokens for noise on every single call.",
   },
   {
-    d: "d3",
-    q: "Hva gir mest pålitelig oppførsel?",
+    d: "d2",
+    q: "You want to delegate a scoped subtask without filling the main conversation with noise. What fits?",
     a: [
-      "Vage instruksjoner som lar modellen stå fritt til å tolke oppgaven slik den vil",
-      "Eksplisitte, spesifikke instruksjoner om nøyaktig hva du vil ha og hvordan",
-      "Å anta at modellen allerede kjenner konteksten og preferansene dine fra før",
-      "Å utelate format-krav så modellen selv velger det formatet den synes passer best",
+      "Paste everything relevant into the main conversation so Claude has full visibility at all times",
+      "A subagent that solves the subtask in its own context and returns only the result",
+      "Restart the whole project with the subtask as the very first priority",
+      "Temporarily turn off CLAUDE.md so the context doesn't fill up while you work",
     ],
     c: 1,
-    e: "Modellen leser ikke tankene dine. Det du lar være uspesifisert, fyller den ut etter eget skjønn — vær eksplisitt om format, omfang og krav når det betyr noe.",
+    e: "A subagent gets its own context for the subtask and delivers a result back. The main conversation stays clean for what it's actually about.",
   },
   {
-    d: "d3",
-    q: "Du har et veldig langt dokument og ett spørsmål om det. Hva er en god rekkefølge i prompten?",
+    d: "d2",
+    q: "What does a permission/allowlist configuration control in Claude Code?",
     a: [
-      "Spørsmålet først og dokumentet etterpå, så modellen vet hva den skal se etter",
-      "Det lange dokumentet først, og spørsmålet eller instruksjonen helt til slutt",
-      "Bland dokument og spørsmål om hverandre så de henger tett sammen gjennom prompten",
-      "Rekkefølgen har ingen betydning for hvor godt modellen klarer å svare på spørsmålet",
+      "Which model is used, depending on how sensitive the task at hand is",
+      "Which tools and commands Claude Code is allowed to run without asking permission first",
+      "The color theme and general appearance in the terminal while Claude Code runs the session",
+      "How fast the response comes, by prioritizing the approved commands highest",
     ],
     c: 1,
-    e: "Med lange inputs lønner det seg å legge det store materialet øverst og spørsmålet til slutt. Da har modellen instruksjonen friskt i minne idet den skal svare.",
+    e: "Permissions decide what can run automatically versus what requires confirmation. It's a security and control layer, especially important in teams and automated setups.",
   },
   {
-    d: "d3",
-    q: "Hva er en effektiv måte å låse outputen til et bestemt format?",
+    d: "d2",
+    q: "You have conventions that apply to the whole repo, and some that apply to just one subfolder. How is that best solved?",
     a: [
-      "Håp at modellen treffer riktig format ut fra konteksten den får i spørsmålet",
-      "Gi en eksplisitt mal eller struktur, og eventuelt prefill starten på svaret",
-      "Be om at svaret skal være «pent» og ryddig formatert når det leveres",
-      "Sett temperature til 1 så modellen selv finner det formatet som passer best",
+      "Everything in one CLAUDE.md at the root, with clear headings for each folder",
+      "A CLAUDE.md at the root for the shared parts, and a more specific one in the subfolder for the local parts",
+      "Repeat the whole set of conventions in a separate CLAUDE.md in every single folder of the repo",
+      "Put the subfolder rules as comments in the code where they're meant to apply",
     ],
     c: 1,
-    e: "Vis formen du vil ha — en mal, et skjelett, eller en prefill av starten. Konkret struktur gir konsistent output; «pent» er ikke en spesifikasjon.",
+    e: "CLAUDE.md files can live in a hierarchy. The general stuff belongs at the root; what applies only to part of the codebase goes closer to where it applies.",
   },
   {
-    d: "d3",
-    q: "Hva styrer temperature-parameteren?",
+    d: "d2",
+    q: "What is a plugin in Claude Code, conceptually?",
     a: [
-      "Hvor langt svaret blir, ved å styre hvor mange tokens modellen får lov å bruke",
-      "Graden av tilfeldighet — lav gir mer konsistente svar, høy gir mer variasjon",
-      "Hvor mange verktøy modellen har tilgang til i løpet av et enkelt kall",
-      "Størrelsen på kontekstvinduet og hvor mye modellen kan lese om gangen",
+      "A single reusable prompt you can call up with a short command when needed",
+      "A package that bundles commands, subagents, hooks and/or MCP setup for distribution",
+      "A pricing plan that unlocks extra capacity and features in Claude Code",
+      "A model variant optimized for a particular programming language or framework",
     ],
     c: 1,
-    e: "Temperature er randomness-knappen. Lav verdi for oppgaver som krever konsistens og presisjon; høyere for idémyldring og variasjon.",
+    e: "A plugin bundles related functionality (commands, agents, hooks, MCP) so a team can install and share an entire setup in one package.",
   },
   {
-    d: "d3",
-    q: "Hvorfor sette en tydelig rolle i system-prompten (f.eks. «du er en erfaren revisor»)?",
+    d: "d2",
+    q: "An MCP server setup should be available to the whole team in one specific project. Which scope?",
     a: [
-      "Det gjør svarene lengre fordi modellen forklarer mer når den er gitt en rolle",
-      "Det rammer inn domene, tone og forventninger, og hever relevansen på svarene",
-      "Det er et påkrevd felt i API-et som kallet rett og slett feiler uten",
-      "Det reduserer token-kostnaden ved å korte ned hvor mye modellen må lese",
+      "User scope, which makes the server available to you across all your projects",
+      "Project scope committed to the repo, so everyone on the project gets the server where it belongs",
+      "A global scope on the machine that no one else on the team can change afterward",
+      "MCP servers can't be shared, and must be set up again by each developer",
     ],
     c: 1,
-    e: "En presis rolle gir modellen et fagspråk og et perspektiv å svare fra. Det styrer både innhold og tone mot det du faktisk trenger.",
+    e: "Project scope committed to the repo gives the whole team the same MCP server exactly where it belongs. User scope would only give it to you.",
   },
   {
-    d: "d3",
-    q: "Et komplekst prompt blander instruksjoner, kontekst, eksempler og selve inputen. Hva hjelper?",
+    d: "d2",
+    q: "What's the practical difference between a hook and an instruction in CLAUDE.md?",
     a: [
-      "Skriv alt sammen i én lang, flytende setning så det henger mest mulig naturlig sammen",
-      "Del det i tydelig merkede seksjoner, for eksempel med XML-tagger, så modellen ser hva som er hva",
-      "Fjern all struktur og la modellen finne ut av sammenhengen helt på egen hånd",
-      "Send bare selve inputen uten instruksjoner, så modellen ikke blir forvirret av krav",
+      "No real difference — both control Claude Code's behavior in exactly the same way",
+      "A hook is code that's guaranteed to run; CLAUDE.md is guidance the model can deviate from",
+      "CLAUDE.md runs code automatically, while a hook is just plain text the model reads",
+      "Hooks apply only to design tasks, while CLAUDE.md applies only to pure coding tasks",
     ],
     c: 1,
-    e: "Klar seksjonering — instruksjon, kontekst, eksempler, input hver for seg — gjør at modellen ikke forveksler dataene dine med oppgaven. XML-tagger er et vanlig grep for nettopp dette.",
-  },
-
-  // D4 — Tool/MCP (7 til)
-  {
-    d: "d4",
-    q: "En MCP-server vil tilby skrivebeskyttet referansedata modellen kan slå opp i. Hvilken primitive passer?",
-    a: [
-      "Et tool, siden alt modellen henter fra serveren regnes som en handling den utfører",
-      "En resource — kontekstuell, skrivebeskyttet data som serveren eksponerer for modellen",
-      "En hook som kjører og henter dataene inn automatisk før hvert kall til modellen",
-      "Et plugin som bunter referansedataene sammen med kommandoene som bruker dem",
-    ],
-    c: 1,
-    e: "MCP skiller tools (handlinger modellen kan utføre) fra resources (data den kan lese). Statisk referansemateriale passer som resource; handlinger med effekt er tools.",
-  },
-  {
-    d: "d4",
-    q: "Hva kjennetegner gode verktøynavn?",
-    a: [
-      "Korte og kryptiske forkortelser som sparer plass i den samlede verktøylisten",
-      "Tydelige, handlingsorienterte og entydige navn som ikke overlapper med andre verktøy",
-      "Tilfeldige navn for variasjon, så modellen ikke fester seg ensidig ved ett verktøy",
-      "Samme navn på flere beslektede verktøy så de grupperes naturlig sammen i lista",
-    ],
-    c: 1,
-    e: "Modellen velger verktøy delvis på navnet. Entydige, beskrivende navn reduserer feilvalg; kryptiske eller overlappende navn inviterer til forveksling.",
-  },
-  {
-    d: "d4",
-    q: "Hvordan bør et verktøy håndtere en feil (f.eks. ugyldig input)?",
-    a: [
-      "Returnere ingenting og la modellen merke selv at noe gikk galt med kallet",
-      "Returnere en strukturert, beskrivende feilmelding modellen kan forstå og rette etter",
-      "Krasje hele agenten så feilen ikke får forplante seg videre i kjøringen",
-      "Late som alt gikk bra og returnere et tomt, men formelt sett gyldig resultat",
-    ],
-    c: 1,
-    e: "En god feilmelding er handlingsbar for modellen: den forteller hva som var galt, så agenten kan korrigere og prøve på nytt. Stille feil etterlater modellen i blinde.",
-  },
-  {
-    d: "d4",
-    q: "Hva er forskjellen på MCP over stdio og over HTTP, konseptuelt?",
-    a: [
-      "Det er ingen reell forskjell — valget handler bare om personlig preferanse hos utvikleren",
-      "stdio passer lokale servere på samme maskin; HTTP/SSE passer eksterne servere over nettverk",
-      "stdio brukes til bilder og binærdata, mens HTTP brukes til ren tekstkommunikasjon",
-      "HTTP er alltid usikkert, så stdio er det eneste trygge valget i praktisk bruk",
-    ],
-    c: 1,
-    e: "Transporten følger hvor serveren kjører: stdio for en lokal prosess på samme maskin, HTTP-basert transport for en server du når over nettverket.",
-  },
-  {
-    d: "d4",
-    q: "Hvordan reduserer du ugyldige argumenter til et verktøy?",
-    a: [
-      "La alle parametere være frie strenger så modellen står helt fritt til å fylle dem ut",
-      "Bruk presise typer og enums i schemaet der verdiene er kjente og begrensede",
-      "Dropp schemaet helt og valider heller argumentene inne i selve verktøykoden",
-      "Be modellen være ekstra forsiktig når den fyller ut parameterne til verktøyet",
-    ],
-    c: 1,
-    e: "Et stramt schema gjør ugyldige kall vanskeligere. Enums og presise typer begrenser hva modellen kan sende, så feil fanges av kontrakten i stedet for i kjøretid.",
-  },
-  {
-    d: "d4",
-    q: "Når bør noe eksponeres som en resource fremfor et tool i MCP?",
-    a: [
-      "Nesten alltid resource, siden tools er reservert for noen få sjeldne spesialtilfeller",
-      "Når det er data å lese eller referere til; tools er for handlinger som faktisk gjør noe",
-      "Nesten alltid tool, fordi modellen jobber best når absolutt alt er en handling",
-      "Det er tilfeldig hva du velger — MCP behandler resources og tools helt likt uansett",
-    ],
-    c: 1,
-    e: "Tommelregel: data du leser → resource; handling som har en effekt → tool. Skillet hjelper både modellen og deg å holde styr på hva som er trygt å hente og hva som endrer noe.",
-  },
-  {
-    d: "d4",
-    q: "En MCP-server trenger autentisering mot et eksternt API. Hvor hører legitimasjonen hjemme?",
-    a: [
-      "Sendt gjennom modellens kontekst i klartekst så den kan bruke nøkkelen ved behov",
-      "Håndtert på server- og integrasjonssiden — ikke ført gjennom modellens kontekst",
-      "Skrevet inn i hvert prompt slik at riktig nøkkel alltid er tilgjengelig for kallet",
-      "Lagret i verktøybeskrivelsen som modellen leser før den kaller selve verktøyet",
-    ],
-    c: 1,
-    e: "Hemmeligheter skal aldri gjennom modellens kontekst. Auth håndteres der serveren snakker med det eksterne systemet, utenfor det modellen ser.",
+    e: "If you need a guarantee, use a hook — it runs no matter what. CLAUDE.md shapes behavior, but it's still instructions a probabilistic model can interpret or slip on.",
   },
 
-  // D5 — Context (5 til)
+  // D3 — Prompt engineering (7 more)
+  {
+    d: "d3",
+    q: "You want consistent format and behavior on a tricky edge case. What helps most?",
+    a: [
+      "Ask the model to 'be accurate' and pay extra attention to the difficult special cases",
+      "Few-shot — show a few concrete examples of the desired input→output, including the edge case",
+      "Turn up temperature so the model explores more ways to handle the case",
+      "Make the prompt shorter so the model isn't distracted by too many details at once",
+    ],
+    c: 1,
+    e: "Examples steer more strongly than explanations. A couple of good few-shot examples — especially of the tricky case — show the model precisely what you want, instead of it having to guess.",
+  },
+  {
+    d: "d3",
+    q: "What gives the most reliable behavior?",
+    a: [
+      "Vague instructions that leave the model free to interpret the task however it likes",
+      "Explicit, specific instructions about exactly what you want and how",
+      "Assuming the model already knows your context and preferences in advance",
+      "Leaving out format requirements so the model picks the format it thinks fits best",
+    ],
+    c: 1,
+    e: "The model doesn't read your mind. Whatever you leave unspecified, it fills in by its own judgment — be explicit about format, scope and requirements when it matters.",
+  },
+  {
+    d: "d3",
+    q: "You have a very long document and one question about it. What's a good order in the prompt?",
+    a: [
+      "The question first and the document after, so the model knows what to look for",
+      "The long document first, and the question or instruction at the very end",
+      "Interleave the document and question so they stay tightly connected throughout the prompt",
+      "The order has no bearing on how well the model can answer the question",
+    ],
+    c: 1,
+    e: "With long inputs it pays to put the bulk of the material at the top and the question at the end. That way the model has the instruction fresh in mind as it answers.",
+  },
+  {
+    d: "d3",
+    q: "What's an effective way to lock the output to a specific format?",
+    a: [
+      "Hope the model hits the right format from the context it gets in the question",
+      "Give an explicit template or structure, and optionally prefill the start of the answer",
+      "Ask for the answer to be 'nice' and neatly formatted when delivered",
+      "Set temperature to 1 so the model finds the format that fits best itself",
+    ],
+    c: 1,
+    e: "Show the shape you want — a template, a skeleton, or a prefill of the start. Concrete structure produces consistent output; 'nice' is not a specification.",
+  },
+  {
+    d: "d3",
+    q: "What does the temperature parameter control?",
+    a: [
+      "How long the answer is, by controlling how many tokens the model is allowed to use",
+      "The degree of randomness — low gives more consistent answers, high gives more variation",
+      "How many tools the model has access to during a single call",
+      "The size of the context window and how much the model can read at once",
+    ],
+    c: 1,
+    e: "Temperature is the randomness dial. Low for tasks that need consistency and precision; higher for brainstorming and variation.",
+  },
+  {
+    d: "d3",
+    q: "Why set a clear role in the system prompt (e.g. 'you are an experienced auditor')?",
+    a: [
+      "It makes the answers longer because the model explains more when given a role",
+      "It frames the domain, tone and expectations, and raises the relevance of the answers",
+      "It's a required field in the API that the call simply fails without",
+      "It reduces token cost by cutting down how much the model has to read",
+    ],
+    c: 1,
+    e: "A precise role gives the model a vocabulary and a perspective to answer from. It steers both content and tone toward what you actually need.",
+  },
+  {
+    d: "d3",
+    q: "A complex prompt mixes instructions, context, examples and the input itself. What helps?",
+    a: [
+      "Write it all in one long, flowing sentence so it hangs together as naturally as possible",
+      "Split it into clearly labeled sections, for example with XML tags, so the model sees what's what",
+      "Remove all structure and let the model figure out the connections entirely on its own",
+      "Send just the input without instructions, so the model isn't confused by requirements",
+    ],
+    c: 1,
+    e: "Clear sectioning — instruction, context, examples, input each on their own — keeps the model from confusing your data with the task. XML tags are a common trick for exactly this.",
+  },
+
+  // D4 — Tool/MCP (7 more)
+  {
+    d: "d4",
+    q: "An MCP server wants to offer read-only reference data the model can look things up in. Which primitive fits?",
+    a: [
+      "A tool, since anything the model fetches from the server counts as an action it performs",
+      "A resource — contextual, read-only data the server exposes to the model",
+      "A hook that runs and pulls the data in automatically before every call to the model",
+      "A plugin that bundles the reference data together with the commands that use it",
+    ],
+    c: 1,
+    e: "MCP separates tools (actions the model can perform) from resources (data it can read). Static reference material fits as a resource; actions with effects are tools.",
+  },
+  {
+    d: "d4",
+    q: "What characterizes good tool names?",
+    a: [
+      "Short, cryptic abbreviations that save space in the overall tool list",
+      "Clear, action-oriented and unambiguous names that don't overlap with other tools",
+      "Random names for variety, so the model doesn't fixate on a single tool",
+      "The same name on several related tools so they naturally group together in the list",
+    ],
+    c: 1,
+    e: "The model picks tools partly by name. Unambiguous, descriptive names reduce wrong choices; cryptic or overlapping names invite confusion.",
+  },
+  {
+    d: "d4",
+    q: "How should a tool handle an error (e.g. invalid input)?",
+    a: [
+      "Return nothing and let the model notice on its own that something went wrong with the call",
+      "Return a structured, descriptive error message the model can understand and correct against",
+      "Crash the whole agent so the error can't propagate further in the run",
+      "Pretend everything went fine and return an empty but technically valid result",
+    ],
+    c: 1,
+    e: "A good error message is actionable for the model: it says what was wrong, so the agent can correct and retry. Silent failures leave the model blind.",
+  },
+  {
+    d: "d4",
+    q: "What's the difference between MCP over stdio and over HTTP, conceptually?",
+    a: [
+      "There's no real difference — the choice is just personal preference for the developer",
+      "stdio suits local servers on the same machine; HTTP/SSE suits remote servers over the network",
+      "stdio is used for images and binary data, while HTTP is used for plain-text communication",
+      "HTTP is always insecure, so stdio is the only safe choice in practice",
+    ],
+    c: 1,
+    e: "The transport follows where the server runs: stdio for a local process on the same machine, HTTP-based transport for a server you reach over the network.",
+  },
+  {
+    d: "d4",
+    q: "How do you reduce invalid arguments to a tool?",
+    a: [
+      "Make all parameters free strings so the model is completely free to fill them in",
+      "Use precise types and enums in the schema where the values are known and limited",
+      "Drop the schema entirely and instead validate the arguments inside the tool code itself",
+      "Ask the model to be extra careful when filling in the tool's parameters",
+    ],
+    c: 1,
+    e: "A tight schema makes invalid calls harder. Enums and precise types limit what the model can send, so errors are caught by the contract instead of at runtime.",
+  },
+  {
+    d: "d4",
+    q: "When should something be exposed as a resource rather than a tool in MCP?",
+    a: [
+      "Almost always a resource, since tools are reserved for a few rare special cases",
+      "When it's data to read or reference; tools are for actions that actually do something",
+      "Almost always a tool, because the model works best when absolutely everything is an action",
+      "It's arbitrary which you choose — MCP treats resources and tools exactly the same anyway",
+    ],
+    c: 1,
+    e: "Rule of thumb: data you read → resource; an action that has an effect → tool. The distinction helps both the model and you keep track of what's safe to fetch and what changes something.",
+  },
+  {
+    d: "d4",
+    q: "An MCP server needs to authenticate against an external API. Where do the credentials belong?",
+    a: [
+      "Passed through the model's context in plain text so it can use the key when needed",
+      "Handled on the server and integration side — not routed through the model's context",
+      "Written into every prompt so the right key is always available for the call",
+      "Stored in the tool description the model reads before calling the tool itself",
+    ],
+    c: 1,
+    e: "Secrets should never pass through the model's context. Auth is handled where the server talks to the external system, outside of what the model sees.",
+  },
+
+  // D5 — Context (5 more)
   {
     d: "d5",
-    q: "Hvorfor er plasseringen av nøkkelinfo i en lang kontekst viktig?",
+    q: "Why does the placement of key info in a long context matter?",
     a: [
-      "Modeller leser i praksis bare den aller siste setningen før de begynner å svare",
-      "Modeller fester seg mindre ved info midt i en lang kontekst enn ved start og slutt",
-      "Plasseringen har ingen reell effekt — modellen vekter hele konteksten nøyaktig likt",
-      "Modeller leser konteksten bakfra, så det aller viktigste bør stå helt nederst",
+      "Models in practice only read the very last sentence before they start answering",
+      "Models latch on less to info in the middle of a long context than at the start and end",
+      "Placement has no real effect — the model weights the entire context exactly equally",
+      "Models read the context back to front, so the most important thing should be at the very bottom",
     ],
     c: 1,
-    e: "«Lost in the middle»: det som ligger begravd midt i et langt vindu er lettere å overse enn det som står først eller sist. Legg det kritiske der det blir sett.",
-  },
-  {
-    d: "d5",
-    q: "Hva er en god chunking-strategi for RAG?",
-    a: [
-      "Så store chunks som overhodet mulig, så hver bit inneholder mest mulig kontekst",
-      "Semantisk sammenhengende chunks — store nok til å bære mening, små nok til å unngå støy",
-      "Ett ord per chunk for å gi maksimal presisjon i søket etter relevante treff",
-      "Tilfeldig oppdeling, siden innholdet uansett rangeres på relevans i ettertid",
-    ],
-    c: 1,
-    e: "Chunk-størrelse er en avveining: for store gir støy og kostnad, for små mister sammenheng. Mål er biter som henger sammen meningsmessig, så retrieval henter noe brukbart.",
+    e: "'Lost in the middle': what's buried in the middle of a long window is easier to overlook than what's first or last. Put the critical stuff where it gets seen.",
   },
   {
     d: "d5",
-    q: "En RAG-pipeline gir dårlige svar. Hva er den mest sannsynlige grunnleggende årsaken å sjekke først?",
+    q: "What's a good chunking strategy for RAG?",
     a: [
-      "At modellen rett og slett er for liten, og at en større modell ville løst det meste",
-      "Kvaliteten på det som hentes — irrelevant retrieval gir irrelevant svar uansett modell",
-      "At temperature er satt feil, så svarene blir mer tilfeldige enn de egentlig burde",
-      "At system-prompten er for kort til å gi modellen nok å gå på i svaret sitt",
+      "Chunks as large as possible, so each piece contains as much context as possible",
+      "Semantically coherent chunks — large enough to carry meaning, small enough to avoid noise",
+      "One word per chunk to give maximum precision in the search for relevant matches",
+      "Random splitting, since the content gets ranked on relevance afterward anyway",
     ],
     c: 1,
-    e: "RAG er bare så godt som det den henter. Får modellen feil eller irrelevant kontekst, hjelper det lite hvor sterk modellen er — start feilsøkingen i retrieval-leddet.",
+    e: "Chunk size is a trade-off: too large brings noise and cost, too small loses coherence. The goal is pieces that hang together in meaning, so retrieval fetches something usable.",
   },
   {
     d: "d5",
-    q: "Et stort kontekstvindu betyr at du bør fylle det helt. Sant eller usant?",
+    q: "A RAG pipeline gives poor answers. What's the most likely root cause to check first?",
     a: [
-      "Sant — mer kontekst gir alltid bedre svar, så fyll opp så mye plass du klarer",
-      "Usant — overflødig kontekst kan fortynne det relevante og koste unødig, så vær selektiv",
-      "Sant, så lenge alt innholdet faktisk får plass innenfor grensen på vinduet",
-      "Usant, fordi modellen uansett ignorerer alt utenom de aller første tokenene",
+      "That the model is simply too small, and that a larger model would solve most of it",
+      "The quality of what's retrieved — irrelevant retrieval gives irrelevant answers regardless of model",
+      "That temperature is set wrong, so the answers are more random than they should be",
+      "That the system prompt is too short to give the model enough to go on in its answer",
     ],
     c: 1,
-    e: "Plass er ikke en plikt til å fylle den. Irrelevant fyll konkurrerer med det viktige om modellens oppmerksomhet og koster tokens — kvalitet på kontekst slår kvantitet.",
+    e: "RAG is only as good as what it retrieves. If the model gets wrong or irrelevant context, it matters little how strong the model is — start debugging at the retrieval stage.",
   },
   {
     d: "d5",
-    q: "Hvordan gjør du et RAG-svar etterprøvbart for brukeren?",
+    q: "A large context window means you should fill it completely. True or false?",
     a: [
-      "Be modellen svare mer selvsikkert, så brukeren føler seg trygg på resultatet",
-      "Returner kildene eller sitatene svaret bygger på, så brukeren selv kan verifisere det",
-      "Skjul hvor informasjonen kom fra, så svaret fremstår mer autoritativt og rent",
-      "Øk temperature for å få modellen til å formulere svaret mer overbevisende",
+      "True — more context always gives better answers, so fill as much space as you can",
+      "False — excess context can dilute what's relevant and cost unnecessarily, so be selective",
+      "True, as long as all the content actually fits within the window's limit",
+      "False, because the model ignores everything except the very first tokens anyway",
     ],
     c: 1,
-    e: "Når svaret peker tilbake på kildene sine, kan brukeren sjekke det selv. Sitering gjør RAG-svar etterprøvbare og bygger tillit — og gjør hallusinasjoner lettere å avsløre.",
+    e: "Space is not an obligation to fill it. Irrelevant filler competes with the important stuff for the model's attention and costs tokens — quality of context beats quantity.",
+  },
+  {
+    d: "d5",
+    q: "How do you make a RAG answer verifiable for the user?",
+    a: [
+      "Tell the model to answer more confidently, so the user feels assured of the result",
+      "Return the sources or citations the answer is built on, so the user can verify it themselves",
+      "Hide where the information came from, so the answer appears more authoritative and clean",
+      "Increase temperature to get the model to phrase the answer more convincingly",
+    ],
+    c: 1,
+    e: "When the answer points back to its sources, the user can check it themselves. Citation makes RAG answers verifiable and builds trust — and makes hallucinations easier to spot.",
   },
 ];
 
@@ -1152,13 +1152,13 @@ function renderHome() {
   const seen = totalSeen();
   app.innerHTML = `
     <div class="eyebrow">Claude Certified Architect · Foundations</div>
-    <h1>CCA-trener</h1>
-    <p class="lede">Aktiv gjenkalling slår passiv lesing. Øv på scenario-spørsmål vektet etter de fem domenene, se hvor du står per domene, og bygg mot bestått.</p>
+    <h1>CCA Trainer</h1>
+    <p class="lede">Active recall beats passive reading. Practice scenario questions weighted across the five domains, see where you stand per domain, and build toward a pass.</p>
 
     <div class="card">
       <div class="meter-head">
-        <h2>Mestring per domene</h2>
-        <span class="sub">bredde = eksamensvekt · fyll = din mestring</span>
+        <h2>Mastery per domain</h2>
+        <span class="sub">width = exam weight · fill = your mastery</span>
       </div>
       <div class="barlabels">
         ${DOMAINS.map(
@@ -1169,7 +1169,7 @@ function renderHome() {
           </div>`,
         ).join("")}
       </div>
-      <div class="bar" role="img" aria-label="Mestring per domene, bredde tilsvarer eksamensvekt">
+      <div class="bar" role="img" aria-label="Mastery per domain, width corresponds to exam weight">
         ${DOMAINS.map(
           (d) => `
           <div class="seg" style="flex:${d.weight}; background:${d.hex}1f;">
@@ -1187,7 +1187,7 @@ function renderHome() {
       </div>
       <div class="readiness">
         <span class="num">${seen ? ready + "%" : "–"}</span>
-        <span class="cap">vektet beredskap${seen ? "" : " · ingen øvinger ennå"}</span>
+        <span class="cap">weighted readiness${seen ? "" : " · no practice yet"}</span>
       </div>
     </div>
 
@@ -1195,42 +1195,42 @@ function renderHome() {
       savedSession
         ? `
     <div class="card mt resume">
-      <h2>Pauset økt</h2>
-      <p class="resume-meta">${dom(savedSession.session.items[savedSession.session.i].d).short} · spørsmål ${savedSession.session.i + 1} / ${savedSession.session.items.length} · ${savedSession.mode === "exam" ? "eksamenssim" : "øving"}</p>
+      <h2>Paused session</h2>
+      <p class="resume-meta">${dom(savedSession.session.items[savedSession.session.i].d).short} · question ${savedSession.session.i + 1} / ${savedSession.session.items.length} · ${savedSession.mode === "exam" ? "exam sim" : "practice"}</p>
       <div class="btnrow">
-        <button class="btn" id="resumeBtn">Fortsett økt →</button>
-        <button class="btn ghost sm" id="dropBtn">Forkast</button>
+        <button class="btn" id="resumeBtn">Resume session →</button>
+        <button class="btn ghost sm" id="dropBtn">Discard</button>
       </div>
     </div>`
         : ""
     }
 
     <div class="card mt">
-      <h2>Start en ny økt</h2>
+      <h2>Start a new session</h2>
       <div class="controls">
         <div class="field">
-          <label>Modus</label>
+          <label>Mode</label>
           <div class="opts" id="modeOpts">
-            <button class="chip" data-v="study" aria-pressed="${mode === "study"}">Øving · forklaring underveis</button>
-            <button class="chip" data-v="exam" aria-pressed="${mode === "exam"}">Eksamenssim · fasit til slutt</button>
+            <button class="chip" data-v="study" aria-pressed="${mode === "study"}">Practice · explanations as you go</button>
+            <button class="chip" data-v="exam" aria-pressed="${mode === "exam"}">Exam sim · answers at the end</button>
           </div>
         </div>
         <div class="field">
-          <label>Fokus</label>
+          <label>Focus</label>
           <div class="opts" id="focusOpts">
-            <button class="chip" data-v="weighted" aria-pressed="${focus === "weighted"}">Vektet miks</button>
+            <button class="chip" data-v="weighted" aria-pressed="${focus === "weighted"}">Weighted mix</button>
             ${DOMAINS.map((d) => `<button class="chip" data-v="${d.id}" aria-pressed="${focus === d.id}"${focus === d.id ? ` style="background:${d.hex};border-color:${d.hex};color:#fff"` : ""}>${d.short}</button>`).join("")}
           </div>
         </div>
       </div>
       <div class="btnrow">
-        <button class="btn" id="startBtn">${savedSession ? "Start ny (forkast pauset) →" : "Start økt →"}</button>
-        ${seen ? `<button class="btn ghost sm" id="resetBtn">Nullstill fremgang</button>` : ""}
+        <button class="btn" id="startBtn">${savedSession ? "Start new (discard paused) →" : "Start session →"}</button>
+        ${seen ? `<button class="btn ghost sm" id="resetBtn">Reset progress</button>` : ""}
       </div>
     </div>
 
     <div class="disclaimer">
-      Spørsmålene er praksis-spørsmål skrevet for å teste konseptene i de fem domenene — ikke ekte eksamensoppgaver, som er hemmelige og proktorerte. Domenevektene (27/20/20/18/15) kommer fra en community-guide og er ikke bekreftet av Anthropic. Priser, rate limits og kontekststørrelser endrer seg — verifiser slike tall i offisiell dokumentasjon før eksamen.
+      The questions are practice questions written to test the concepts in the five domains — not real exam items, which are secret and proctored. The domain weights (27/20/20/18/15) come from a community guide and are not confirmed by Anthropic. Pricing, rate limits and context sizes change — verify such numbers in the official documentation before the exam.
     </div>
   `;
   document.getElementById("modeOpts").addEventListener("click", (e) => {
@@ -1279,9 +1279,9 @@ function renderQuestion() {
       <span class="domtag" style="background:${d.hex}">${d.short}</span>
       <div class="qmeta-right">
         ${mode === "exam" ? '<span class="examclock" id="examTimer" aria-hidden="true"></span>' : ""}
-        <span class="progress-mini">${session.i + 1} / ${total} · ${mode === "exam" ? "eksamenssim" : "øving"}</span>
-        <button class="link-btn" id="pauseBtn" title="Lagre og gå til oversikt">Pause</button>
-        <button class="link-btn danger" id="abortBtn" title="Forkast denne økten">Avbryt</button>
+        <span class="progress-mini">${session.i + 1} / ${total} · ${mode === "exam" ? "exam sim" : "practice"}</span>
+        <button class="link-btn" id="pauseBtn" title="Save and go to overview">Pause</button>
+        <button class="link-btn danger" id="abortBtn" title="Discard this session">Quit</button>
       </div>
     </div>
     <div class="card">
@@ -1337,13 +1337,13 @@ function revealAnswer(k) {
   if (mode === "study") {
     document.getElementById("explainSlot").innerHTML = `
       <div class="explain">
-        <div class="verdict ${correct ? "ok" : "no"}">${correct ? "Riktig" : "Feil"}</div>
+        <div class="verdict ${correct ? "ok" : "no"}">${correct ? "Correct" : "Wrong"}</div>
         <p>${it.e}</p>
       </div>`;
   }
   const last = session.i === session.items.length - 1;
   document.getElementById("navSlot").innerHTML =
-    `<button class="btn" id="nextBtn">${last ? "Se oppsummering →" : "Neste →"}</button>`;
+    `<button class="btn" id="nextBtn">${last ? "See summary →" : "Next →"}</button>`;
   document.getElementById("nextBtn").addEventListener("click", next);
 }
 
@@ -1400,17 +1400,17 @@ function renderSummary() {
   // Exam-sim total time vs target (count-up clock)
   const examTime =
     mode === "exam"
-      ? `<p class="resume-meta">⏱ Total tid: ${fmtClock(session.elapsedMs || 0)} · ${(session.elapsedMs || 0) <= SECS_PER_Q * 1000 * total ? "innenfor måltid ✓" : "over måltid (" + fmtClock(SECS_PER_Q * 1000 * total) + ")"}</p>`
+      ? `<p class="resume-meta">⏱ Total time: ${fmtClock(session.elapsedMs || 0)} · ${(session.elapsedMs || 0) <= SECS_PER_Q * 1000 * total ? "within target ✓" : "over target (" + fmtClock(SECS_PER_Q * 1000 * total) + ")"}</p>`
       : "";
 
   app.innerHTML = `
-    <div class="eyebrow">Økt fullført</div>
-    <h1>${session.correctCount} / ${total} riktige</h1>
-    <p class="lede">${pct >= 80 ? "Solid. Det er rundt nivået du vil ha med inn i en proktorert prøve." : pct >= 60 ? "På vei. Repeter de svake domenene før du går videre." : "Tidlig. Ta de svakeste domenene ett om gangen i øvingsmodus."}</p>
+    <div class="eyebrow">Session complete</div>
+    <h1>${session.correctCount} / ${total} correct</h1>
+    <p class="lede">${pct >= 80 ? "Solid. That's around the level you want going into a proctored exam." : pct >= 60 ? "Getting there. Review the weak domains before moving on." : "Early days. Take the weakest domains one at a time in practice mode."}</p>
     ${examTime}
 
     <div class="card">
-      <h2>Denne økten · per domene</h2>
+      <h2>This session · per domain</h2>
       <div class="sumgrid">
         ${practiced
           .map((d) => {
@@ -1425,12 +1425,12 @@ function renderSummary() {
           })
           .join("")}
       </div>
-      ${weak ? `<div class="focusnote">Neste fokus: <b>${weak.name}</b>. Det var det svakeste denne økten — kjør det isolert i øvingsmodus til du treffer jevnt.</div>` : ""}
+      ${weak ? `<div class="focusnote">Next focus: <b>${weak.name}</b>. It was the weakest this session — drill it on its own in practice mode until you're consistent.</div>` : ""}
     </div>
 
     <div class="btnrow">
-      <button class="btn" id="againBtn">Ny økt →</button>
-      <button class="btn ghost sm" id="homeBtn">Til oversikt</button>
+      <button class="btn" id="againBtn">New session →</button>
+      <button class="btn ghost sm" id="homeBtn">To overview</button>
     </div>
   `;
   document.getElementById("againBtn").addEventListener("click", async () => {
@@ -1465,7 +1465,7 @@ function applyTheme(theme) {
   if (btn) {
     btn.innerHTML = dark ? SUN_SVG : MOON_SVG; // sun while dark (click → light); moon while light
     btn.setAttribute("aria-pressed", String(dark));
-    const label = dark ? "Bytt til lys modus" : "Bytt til mørk modus";
+    const label = dark ? "Switch to light mode" : "Switch to dark mode";
     btn.setAttribute("aria-label", label);
     btn.setAttribute("title", label);
   }
@@ -1553,7 +1553,7 @@ function setupClearButton() {
   btn.addEventListener("click", () => {
     if (
       confirm(
-        "Nullstille all fremgang (mestring per domene)? Dette kan ikke angres. Pauset økt og tema beholdes.",
+        "Reset all progress (mastery per domain)? This can't be undone. Your paused session and theme are kept.",
       )
     ) {
       resetStats(); // clears stored stats + re-renders

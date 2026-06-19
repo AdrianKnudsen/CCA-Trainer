@@ -1,15 +1,15 @@
 /* ============================================================
-   CCA-trener · stiler
+   CCA Trainer · styles
    ------------------------------------------------------------
-   Alt det visuelle bor her: fargevariabler (lys + mørk modus),
-   typografi, og hver komponent — mestringsbaren, kortene, knappene,
-   spørsmålsvisningen og oppsummeringen.
+   Everything visual lives here: color variables (light + dark mode),
+   typography, and each component — the mastery bar, the cards, the buttons,
+   the question view and the summary.
 
-   Lastes av index.html via <link>. Selve logikken (spørsmål,
-   tilstand, rendering) ligger i cca-trainer.js.
+   Loaded by index.html via <link>. The logic itself (questions,
+   state, rendering) lives in cca-trainer.js.
 
-   Tema byttes ved å sette/fjerne data-theme="dark" på <html>. Fordi
-   alle fargene under er CSS-variabler, snur ett attributt hele paletten.
+   The theme is switched by setting/removing data-theme="dark" on <html>. Because
+   all the colors below are CSS variables, one attribute flips the whole palette.
    ============================================================ */
 
 :root {
@@ -128,7 +128,6 @@ p {
   color: var(--ink-soft);
   text-align: right;
 }
-/* labels live ABOVE the bar now, as dark text on the light card — always readable */
 .barlabels {
   display: flex;
   margin-bottom: 0.4rem;
@@ -312,8 +311,7 @@ p {
   margin-bottom: 0.875rem;
   flex-wrap: wrap;
 }
-/* On narrow screens the content column fills the width and its top-right
-     (Pause/Avbryt) would sit under the fixed theme toggle — reserve a gutter. */
+
 @media (max-width: 52rem) {
   .qmeta {
     padding-right: 3.25rem;
