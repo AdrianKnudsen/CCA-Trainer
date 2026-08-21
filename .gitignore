@@ -6,3 +6,6 @@
 
 # Interne design-specer/planer — beholdes på disk, men spores ikke i git
 docs/
+
+# Offisiell Anthropic-eksamensguide (opphavsrettslig materiale, ikke for git)
+Claude-Certified-Architect–Foundations-Exam-Guide.pdf

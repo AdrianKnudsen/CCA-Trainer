@@ -58,6 +58,9 @@
     </button>
     <div class="wrap" id="app"></div>
 
+    <!-- Question data: see questions.js. Loaded before cca-trainer.js so
+     DOMAINS/SCENARIOS/Q are already defined as globals when it runs. -->
+    <script src="questions.js"></script>
     <!-- Logic: see cca-trainer.js. Placed at the bottom so that #app already
      exists in the DOM when the script runs. -->
     <script src="cca-trainer.js"></script>
