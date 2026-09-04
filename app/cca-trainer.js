@@ -24,9 +24,10 @@
 /* ---------- State + persistence ---------- */
 /* ---------- Storage keys ----------
    Stats and a paused session are per track, so studying one exam can neither
-   pollute nor wipe the other's progress. The v1 keys were single-track; they're
-   migrated to v2:architect on first run (see migrateV1) and deliberately left
-   in place afterwards as a cheap backup. */
+   pollute nor wipe the other's progress. The v1 keys were single-track; the
+   stats are migrated to v2:architect on first run (see migrateV1) and
+   deliberately left in place afterwards as a cheap backup. A v1 paused session
+   is not migrated — migrateV1 says why. */
 const EXAM_KEY = "cca:exam:v1"; // last selected track
 function statsKey() {
   return `cca:stats:v2:${examId}`;
@@ -40,7 +41,6 @@ function sessionKey() {
    records, and there's no honest way to reconstruct one from the other. */
 const SESSION_V = 2;
 const V1_STORE_KEY = "cca:stats:v1";
-const V1_SESSION_KEY = "cca:session:v1";
 
 /* ---------- Exam tracks ----------
    The two certifications the trainer covers. Each descriptor carries its own
@@ -110,24 +110,26 @@ function blankStats() {
 let stats = {}; // populated by loadStats(), once the active track is known
 let savedSession = null; // paused session loaded from storage
 
-/* One-time move of the pre-two-track data onto the Architect track's keys.
-   Guarded on the target being absent so it can't run twice and clobber newer
-   progress, and the v1 keys are never deleted: that's Adrian's real study
+/* One-time move of the pre-two-track mastery stats onto the Architect track's
+   key. Guarded on the target being absent so it can't run twice and clobber
+   newer progress, and cca:stats:v1 is never deleted: that's the real study
    history, it costs nothing to keep, and it's the only safety net if this
-   migration turns out to be wrong. */
+   migration turns out to be wrong.
+
+   A paused v1 session is deliberately not migrated. Its payload predates
+   session.picks, so loadSavedSession would read the copy, see the version
+   mismatch and delete it on the next load — copying it only moved something
+   about to be discarded. An old paused session is therefore dropped, which
+   loadSavedSession does cleanly; the stats it contributed to are untouched. */
 async function migrateV1() {
-  for (const [from, to] of [
-    [V1_STORE_KEY, "cca:stats:v2:architect"],
-    [V1_SESSION_KEY, "cca:session:v2:architect"],
-  ]) {
-    try {
-      const target = await store.get(to);
-      if (target && target.value) continue; // already migrated, or newer data
-      const old = await store.get(from);
-      if (old && old.value) await store.set(to, old.value);
-    } catch (e) {
-      /* storage unavailable — nothing to migrate, blank stats are fine */
-    }
+  const to = "cca:stats:v2:architect";
+  try {
+    const target = await store.get(to);
+    if (target && target.value) return; // already migrated, or newer data
+    const old = await store.get(V1_STORE_KEY);
+    if (old && old.value) await store.set(to, old.value);
+  } catch (e) {
+    /* storage unavailable — nothing to migrate, blank stats are fine */
   }
 }
 
