@@ -1,16 +1,22 @@
 /* ============================================================
-   CCA Trainer · question data
+   CCA Trainer · question data · Claude Certified ARCHITECT – Foundations
    ------------------------------------------------------------
-   Domains, scenarios and the question bank. Split out from
-   cca-trainer.js on 2026-08-21 for readability, and loaded via a
-   plain <script> tag (before cca-trainer.js) rather than fetch() —
-   the app is opened as a local file, and fetch() of a local JSON
-   file is blocked by the browser's file:// CORS policy.
+   Domains, scenarios, the question bank and the exam descriptor for the
+   Architect track (exam code CCAR-F). Loaded via a plain <script> tag
+   (before cca-trainer.js) rather than fetch() — the app is opened as a
+   local file, and fetch() of a local JSON file is blocked by the
+   browser's file:// CORS policy.
+
+   Everything here is namespaced ARCHITECT_* and gathered into the
+   EXAM_ARCHITECT descriptor at the bottom of the file, because a second
+   track (questions-associate.js) defines the same shapes for its own
+   exam. cca-trainer.js never reads these names directly — it goes
+   through the active track's descriptor.
    ============================================================ */
 
 /* ---------- Domains (weights confirmed against the official Anthropic "Claude Certified
    Architect – Foundations" Exam Guide, v1.0, effective July 2026, exam code CCAR-F) ---------- */
-const DOMAINS = [
+const ARCHITECT_DOMAINS = [
   {
     id: "d1",
     name: "Agentic architecture & orchestration",
@@ -55,7 +61,7 @@ const DOMAINS = [
 
 /* ---------- Scenarios (shared setup for a group of questions; mirrors the real
    exam's scenario-based format). A question links to one via its `sc` field. ---------- */
-const SCENARIOS = {
+const ARCHITECT_SCENARIOS = {
   s1: {
     domains: ["d1", "d4", "d5"],
     title: "Customer Support Resolution Agent",
@@ -95,7 +101,7 @@ const SCENARIOS = {
 };
 
 /* ---------- Question bank (practice questions, not real exam items) ---------- */
-const Q = [
+const ARCHITECT_Q = [
   // D1 — Agentic (10)
   {
     d: "d1",
@@ -1994,3 +2000,42 @@ const Q = [
     e: "When a source document genuinely contains conflicting values, silently picking one hides the discrepancy from anyone downstream. Extracting both values with a conflict_detected flag surfaces the conflict explicitly so a human or downstream rule can resolve it with full information.",
   },
 ];
+
+/* ---------- Exam descriptor ----------
+   Everything cca-trainer.js needs to render this track: the exam facts from the
+   official guide, and every piece of prose that names the exam or its numbers.
+   The prose lives here rather than in cca-trainer.js so that adding a track
+   can't leave an Architect string behind in the Associate view — there is no
+   hardcoded exam text in the renderer to forget. */
+const EXAM_ARCHITECT = {
+  id: "architect",
+  tab: "Architect",
+  credential: "Claude Certified Architect – Foundations",
+  code: "CCAR-F",
+  items: 60, // items on the real exam; exam-sim session length
+  minutes: 120,
+  passPct: 72, // 720 of 100–1000
+  hasScenarios: true,
+  domains: ARCHITECT_DOMAINS,
+  scenarios: ARCHITECT_SCENARIOS,
+  questions: ARCHITECT_Q,
+  copy: {
+    eyebrow:
+      "Claude Certified Architect · Foundations — 1 of 4 exams in Anthropic's Claude Certification Program",
+    lede: "Active recall beats passive reading. Practice scenario questions weighted across the five domains, see where you stand per domain, and build toward a pass.",
+    masteryHelp: `
+        <p>This is your progress dashboard — read-only, it just reflects how you're doing.</p>
+        <p>Each column's <b>width</b> is that domain's weight on the real exam — Agentic counts most (27%), Context least (15%). The coloured <b>fill</b> is your accuracy: the % of the questions you've <i>tried</i> in that domain that you got right. It's not a completion bar — 2 of 2 correct shows as a full 100%, because it measures how well you've done so far, not how much is left.</p>
+        <p>The <b>legend</b> below reads "<i>X% of N tried</i>" per domain — your accuracy and how many you've attempted. "Not tried yet" means you haven't touched that domain.</p>
+        <p><b>Weighted readiness</b> rolls all five domains into one number, each counted by its exam weight — a rough estimate of how exam-ready you are. Domains you haven't practised yet count as 0%, so one domain alone can't get you near 100%; it climbs as you cover more ground AND answer correctly. Aim for <b>72%+</b> (the real pass mark).</p>`,
+    startHelp: `
+        <p>Pick how you want to practise, then press <b>Start</b>.</p>
+        <p><b>Mode · Practice</b> reveals the correct answer and an explanation after every question, so you learn as you go.</p>
+        <p><b>Mode · Exam sim</b> hides the answers until the end, uses 60 questions, and runs a 120-minute countdown — like the real test. You can move freely between items, flag items to come back to, and submit when you're ready; unanswered items score as incorrect, and the exam submits itself when the clock hits zero.</p>
+        <p><b>One deliberate difference:</b> you can pause an exam sim and the clock stops. The real proctored exam has no pause — once it starts, the clock runs. So a paused run isn't a clean rehearsal of exam-day timing, and the summary tells you how many times you paused so you can judge that for yourself.</p>
+        <p><b>Focus</b> (practice only) — "Weighted mix" samples across all five domains by their exam weight, or pick a single domain to drill it on its own. Exam sim always uses the weighted mix.</p>
+        <p>Progress saves automatically, and you can pause mid-session and resume later. The <b>trash icon</b> in the bottom-left corner clears your mastery stats (your paused session and theme stay).</p>`,
+    disclaimer: `
+      This track covers <b>Claude Certified Architect – Foundations</b> (exam code CCAR-F). The trainer covers 2 of the 4 exams in Anthropic's Claude Certification Program — Architect and Associate, switchable with the tabs above — and not the remaining two. The questions are practice questions written to test the concepts in the five domains — not real exam items, which are secret and proctored. The five domains, their weights (27/20/20/18/15), the 60-item/120-minute format and the 720/1000 pass mark are all confirmed against the official Anthropic Exam Guide (v1.0, July 2026). Pricing, rate limits and context sizes change — verify such numbers in the official documentation before the exam. Its guide describes both multiple-choice and multiple-response items, but this bank is still 100% single-answer; the Associate track has the multiple-response items, and retrofitting this one is outstanding work. One deliberate difference from the real exam: an exam sim here <b>can</b> be paused and the clock stops. The real proctored exam cannot, so the summary reports how many times a run was paused — check that number before you trust a score as a dress rehearsal.`,
+  },
+};

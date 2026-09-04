@@ -25,14 +25,20 @@
   --d3: #5e7f6e;
   --d4: #4a6b82;
   --d5: #7a5e8a;
+  /* Note: --d1..--d5 above are dead — nothing in the CSS or the JS reads them.
+     Domain colours actually reach the DOM as the `hex` literal on each domain
+     in the data files, because the renderer builds `${d.hex}1f` alpha suffixes
+     and var() can't be concatenated like that. The Associate track's seven
+     colours therefore live only in questions-associate.js; no tokens here. */
   --good: #4f7a4a;
   --bad: #b0492f;
   --disp: "Space Grotesk", system-ui, sans-serif;
   --body: "Inter", system-ui, sans-serif;
   --mono: "Space Mono", ui-monospace, monospace;
 }
-/* Dark mode: same variables, warm dark palette. Domain colors (d1–d5) are
-     intentionally unchanged — they read fine on both light and dark. */
+/* Dark mode: same variables, warm dark palette. The domain colours come from
+     the data files' `hex` values and are intentionally unchanged — they read
+     fine on both light and dark. */
 :root[data-theme="dark"] {
   --paper: #1a1714;
   --card: #23201b;
@@ -73,6 +79,109 @@ body {
   width: 100%;
   margin: auto;
 }
+/* Review screen: one cell per item, so a 60-item exam is scannable at a glance
+   and a parked item is easy to find again. */
+.reviewgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(2.25rem, 1fr));
+  gap: 0.375rem;
+  margin: 0.875rem 0;
+}
+.revcell {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  padding: 0.5rem 0;
+  border-radius: 0.375rem;
+  border: 1px solid var(--line);
+  background: var(--paper);
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: 0.12s;
+}
+.revcell:hover {
+  border-color: var(--ink-soft);
+}
+.revcell:focus-visible {
+  outline: 2px solid var(--clay);
+  outline-offset: 2px;
+}
+.revcell.done {
+  background: rgba(79, 122, 74, 0.16);
+  border-color: var(--good);
+  color: var(--ink);
+}
+.revcell.flagged {
+  border-color: var(--clay);
+  border-width: 2px;
+  color: var(--ink);
+  font-weight: 700;
+}
+.reviewlegend {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  color: var(--ink-soft);
+  margin-bottom: 1rem;
+}
+.reviewlegend span {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+.reviewlegend .swatch {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 0.1875rem;
+  border: 1px solid var(--line);
+}
+.reviewlegend .swatch.done {
+  background: rgba(79, 122, 74, 0.16);
+  border-color: var(--good);
+}
+.reviewlegend .swatch.todo {
+  background: var(--paper);
+}
+.reviewlegend .swatch.flagged {
+  border: 2px solid var(--clay);
+}
+
+/* Exam switcher. Sits above the eyebrow on the home screen only. Uses .chip
+   for the buttons so it introduces no new visual language; the only addition
+   is the small exam code stacked under each label. */
+.examtabs {
+  display: flex;
+  gap: 0.4375rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.25rem;
+}
+.examtabs .chip {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.125rem;
+  line-height: 1.2;
+}
+.examtabs-code {
+  font-family: var(--mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.06em;
+  opacity: 0.65;
+}
+/* The active track reads as selected, not merely hovered — .chip's own
+   aria-pressed styling is subtle, and this is the app's primary mode switch. */
+.examtabs .chip[aria-pressed="true"] {
+  background: var(--clay);
+  border-color: var(--clay);
+  color: #fff;
+}
+.emptybank {
+  font-size: 0.875rem;
+  color: var(--ink-soft);
+  margin: 0;
+}
+
 .eyebrow {
   font-family: var(--mono);
   font-size: 0.6875rem;
@@ -376,8 +485,17 @@ p {
   font-size: 0.6875rem;
   color: var(--ink-soft);
 }
+.examclock.warn {
+  color: var(--clay-deep);
+  font-weight: 700;
+}
 .examclock.over {
   color: var(--bad);
+  font-weight: 700;
+}
+/* Flag toggle in the question header */
+.link-btn.flag.on {
+  color: var(--clay);
   font-weight: 700;
 }
 .qtext {
@@ -420,6 +538,25 @@ p {
   color: var(--ink-soft);
   flex: none;
   margin-top: 0.0625rem;
+}
+/* How many options a multiple-response item wants, stated the way the real
+   exam states it. */
+.selecthint {
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-bottom: 0.5rem;
+}
+/* A toggled-on option, before the answer is checked. Distinct from .correct /
+   .wrong, which only appear after revealing. */
+.ans.picked {
+  border-color: var(--clay);
+  background: rgba(196, 99, 63, 0.09);
+}
+.ans.picked .key {
+  color: var(--clay);
 }
 .ans[disabled] {
   cursor: default;
