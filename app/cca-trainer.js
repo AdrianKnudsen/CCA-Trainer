@@ -626,7 +626,13 @@ function renderQuestion() {
             // checkbox semantics; a screen reader then announces checked state.
             // Single-answer options stay plain buttons: one click commits, which
             // is a command, not a toggle.
-            const sem = multi ? ` role="checkbox" aria-checked="${on}"` : "";
+            /* At the cap, an unchecked option can't be checked until something
+               is unchecked, so say so rather than leaving a button that looks
+               live and does nothing. */
+            const atCap = multi && !on && !p.revealed && p.sel.length >= pickCount(it);
+            const sem = multi
+              ? ` role="checkbox" aria-checked="${on}"${atCap ? ' aria-disabled="true"' : ""}`
+              : "";
             return `<button class="ans${on ? " picked" : ""}" data-k="${k}"${sem}><span class="key">${String.fromCharCode(65 + k)}</span><span>${opt}</span></button>`;
           })
           .join("")}
@@ -685,8 +691,15 @@ function onOptionClick(k) {
   if (mode === "study" && p.revealed) return; // already committed
   if (isMulti(it)) {
     const at = p.sel.indexOf(k);
-    if (at === -1) p.sel.push(k);
-    else p.sel.splice(at, 1);
+    if (at !== -1) p.sel.splice(at, 1);
+    /* Selection is capped at the number of answers the item states, so a
+       "Select 3" item accepts three and a "Select 2" two. Picking beyond the
+       cap does nothing rather than replacing an earlier pick: which one to drop
+       is the candidate's decision, so changing your mind means deselecting one
+       and then choosing another. Before the cap, an over-selection left the
+       submit button reading "Select -1 more" and disabled. */
+    else if (p.sel.length < pickCount(it)) p.sel.push(k);
+    else return;
     p.sel.sort((a, b) => a - b);
   } else {
     p.sel = [k];
