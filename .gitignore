@@ -1,8 +1,10 @@
 # macOS clutter
 .DS_Store
 
-# Claude Code machine-local config (personal, does not belong in the repo)
-.claude/settings.local.json
+# Claude Code's own files: machine-local config, agents, skills, commands.
+# Personal and local by rule, so the whole directory is ignored rather than the
+# one file that happens to be in it today.
+.claude/
 
 # Internal notes: design specs, plans, research and the official exam guides
 # (docs/guides/). Kept on disk, but not tracked in git.
