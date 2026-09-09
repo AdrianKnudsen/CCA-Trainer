@@ -79,6 +79,16 @@ function checkQuestion(ex, q, i, domainIds, problems) {
   if (!q.q || !q.q.trim()) say("has no question text");
   if (!q.e || q.e.trim().length < 20) say("has no real explanation");
 
+  /* An item marked `official` is reproduced verbatim from the exam guide's own
+     sample questions, and every published sample on both tracks is
+     single-answer. Converting one to multiple-response would rewrite a guide
+     item, so the flag is also the guard that stops it — this is what protects
+     the twelve CCAR-F samples from the multiple-response retrofit. */
+  if (q.official) {
+    if (Array.isArray(q.c)) say("is an official guide sample, so it cannot be multiple-response");
+    if (!q.src) say("is marked official but doesn't say which guide sample it is");
+  }
+
   // Scenarios: a reference must resolve, and a track whose guide describes no
   // scenarios must not have any.
   if (q.sc) {
@@ -92,10 +102,21 @@ function checkQuestion(ex, q, i, domainIds, problems) {
    that; below it the sampler runs out and silently under-fills the domain. The
    "short by" column is therefore the minimum still to write, not a target — a
    bank at exactly the minimum repeats itself completely on a second run. */
+/* How many sample questions each guide publishes, and therefore how many items
+   the bank should carry verbatim. CCAO-F §8 has three; CCAR-F §9 has twelve, as
+   four scenarios of three. A count that drifts means a sample was dropped, or
+   an in-house question was flagged by mistake. */
+const OFFICIAL_SAMPLES = { "CCAO-F": 3, "CCAR-F": 12 };
+
 function report(ex) {
   const domainIds = new Set(ex.domains.map((d) => d.id));
   const problems = [];
   ex.questions.forEach((q, i) => checkQuestion(ex, q, i, domainIds, problems));
+
+  const expected = OFFICIAL_SAMPLES[ex.code];
+  const official = ex.questions.filter((q) => q.official).length;
+  if (expected !== undefined && official !== expected)
+    problems.push(`${ex.code}: ${official} questions marked official, expected ${expected}`);
 
   const counts = {};
   ex.domains.forEach((d) => (counts[d.id] = 0));
@@ -109,7 +130,7 @@ function report(ex) {
 
   console.log(`\n${ex.credential}  (${ex.code})`);
   console.log(
-    `  ${total} questions · ${multi} multiple-response (${total ? Math.round((100 * multi) / total) : 0}%) · weights sum ${weightSum}${weightSum === 100 ? "" : "  <-- should be 100"}`,
+    `  ${total} questions · ${multi} multiple-response (${total ? Math.round((100 * multi) / total) : 0}%) · ${official} official · weights sum ${weightSum}${weightSum === 100 ? "" : "  <-- should be 100"}`,
   );
   console.log("  domain           weight   have   exam draw   short by");
   ex.domains.forEach((d) => {

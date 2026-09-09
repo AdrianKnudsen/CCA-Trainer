@@ -1523,8 +1523,10 @@ const ARCHITECT_Q = [
   // s1 — Customer Support Resolution Agent
   {
     d: "d1",
+    official: true,
+    src: "Exam Guide v1.0 §9 Sample 1",
     sc: "s1",
-    q: "Production data shows that in 12% of cases, your agent skips get_customer entirely and calls lookup_order using only the customer's stated name, occasionally leading to misidentified accounts and incorrect refunds. What change would most effectively address this reliability issue? (official)",
+    q: "Production data shows that in 12% of cases, your agent skips get_customer entirely and calls lookup_order using only the customer's stated name, occasionally leading to misidentified accounts and incorrect refunds. What change would most effectively address this reliability issue?",
     a: [
       "Add a programmatic prerequisite that blocks lookup_order and process_refund calls until get_customer has returned a verified customer ID.",
       "Enhance the system prompt to state that customer verification via get_customer is mandatory before any order operations.",
@@ -1536,8 +1538,10 @@ const ARCHITECT_Q = [
   },
   {
     d: "d4",
+    official: true,
+    src: "Exam Guide v1.0 §9 Sample 2",
     sc: "s1",
-    q: "Production logs show the agent frequently calls get_customer when users ask about orders (e.g., \"check my order #12345\"), instead of calling lookup_order. Both tools have minimal descriptions (\"Retrieves customer information\" / \"Retrieves order details\") and accept similar identifier formats. What's the most effective first step to improve tool selection reliability? (official)",
+    q: "Production logs show the agent frequently calls get_customer when users ask about orders (e.g., \"check my order #12345\"), instead of calling lookup_order. Both tools have minimal descriptions (\"Retrieves customer information\" / \"Retrieves order details\") and accept similar identifier formats. What's the most effective first step to improve tool selection reliability?",
     a: [
       "Add few-shot examples to the system prompt demonstrating correct tool selection patterns, with 5-8 examples showing order-related queries routing to lookup_order.",
       "Expand each tool's description to include input formats it handles, example queries, edge cases, and boundaries explaining when to use it versus similar tools.",
@@ -1549,8 +1553,10 @@ const ARCHITECT_Q = [
   },
   {
     d: "d5",
+    official: true,
+    src: "Exam Guide v1.0 §9 Sample 3",
     sc: "s1",
-    q: "Your agent achieves 55% first-contact resolution, well below the 80% target. Logs show it escalates straightforward cases (standard damage replacements with photo evidence) while attempting to autonomously handle complex situations requiring policy exceptions. What's the most effective way to improve escalation calibration? (official)",
+    q: "Your agent achieves 55% first-contact resolution, well below the 80% target. Logs show it escalates straightforward cases (standard damage replacements with photo evidence) while attempting to autonomously handle complex situations requiring policy exceptions. What's the most effective way to improve escalation calibration?",
     a: [
       "Add explicit escalation criteria to your system prompt with few-shot examples demonstrating when to escalate versus resolve autonomously.",
       "Have the agent self-report a confidence score (1-10) before each response and automatically route requests to humans when confidence falls below a threshold.",
@@ -1603,8 +1609,10 @@ const ARCHITECT_Q = [
   // s2 — Code Generation with Claude Code
   {
     d: "d2",
+    official: true,
+    src: "Exam Guide v1.0 §9 Sample 4",
     sc: "s2",
-    q: "You want to create a custom /review slash command that runs your team's standard code review checklist. This command should be available to every developer when they clone or pull the repository. Where should you create this command file? (official)",
+    q: "You want to create a custom /review slash command that runs your team's standard code review checklist. This command should be available to every developer when they clone or pull the repository. Where should you create this command file?",
     a: [
       "In the .claude/commands/ directory in the project repository",
       "In ~/.claude/commands/ in each developer's home directory",
@@ -1616,8 +1624,10 @@ const ARCHITECT_Q = [
   },
   {
     d: "d2",
+    official: true,
+    src: "Exam Guide v1.0 §9 Sample 5",
     sc: "s2",
-    q: "You've been assigned to restructure the team's monolithic application into microservices. This will involve changes across dozens of files and requires decisions about service boundaries and module dependencies. Which approach should you take? (official)",
+    q: "You've been assigned to restructure the team's monolithic application into microservices. This will involve changes across dozens of files and requires decisions about service boundaries and module dependencies. Which approach should you take?",
     a: [
       "Enter plan mode to explore the codebase, understand dependencies, and design an implementation approach before making changes.",
       "Start with direct execution and make changes incrementally, letting the implementation reveal the natural service boundaries.",
@@ -1629,8 +1639,10 @@ const ARCHITECT_Q = [
   },
   {
     d: "d2",
+    official: true,
+    src: "Exam Guide v1.0 §9 Sample 6",
     sc: "s2",
-    q: "Your codebase has distinct areas with different coding conventions: React components use functional style with hooks, API handlers use async/await with specific error handling, and database models follow a repository pattern. Test files are spread throughout the codebase alongside the code they test (e.g., Button.test.tsx next to Button.tsx), and you want all tests to follow the same conventions regardless of location. What's the most maintainable way to ensure Claude automatically applies the correct conventions when generating code? (official)",
+    q: "Your codebase has distinct areas with different coding conventions: React components use functional style with hooks, API handlers use async/await with specific error handling, and database models follow a repository pattern. Test files are spread throughout the codebase alongside the code they test (e.g., Button.test.tsx next to Button.tsx), and you want all tests to follow the same conventions regardless of location. What's the most maintainable way to ensure Claude automatically applies the correct conventions when generating code?",
     a: [
       "Create rule files in .claude/rules/ with YAML frontmatter specifying glob patterns to conditionally apply conventions based on file paths",
       "Consolidate all conventions in the root CLAUDE.md file under headers for each area, relying on Claude to infer which section applies",
@@ -1683,8 +1695,10 @@ const ARCHITECT_Q = [
   // s3 — Multi-Agent Research System
   {
     d: "d1",
+    official: true,
+    src: "Exam Guide v1.0 §9 Sample 7",
     sc: "s3",
-    q: "After running the system on the topic \"impact of AI on creative industries,\" you observe that each subagent completes successfully: the web search agent finds relevant articles, the document analysis agent summarizes papers correctly, and the synthesis agent produces coherent output. However, the final reports cover only visual arts, completely missing music, writing, and film production. When you examine the coordinator's logs, you see it decomposed the topic into three subtasks: \"AI in digital art creation,\" \"AI in graphic design,\" and \"AI in photography.\" What is the most likely root cause? (official)",
+    q: "After running the system on the topic \"impact of AI on creative industries,\" you observe that each subagent completes successfully: the web search agent finds relevant articles, the document analysis agent summarizes papers correctly, and the synthesis agent produces coherent output. However, the final reports cover only visual arts, completely missing music, writing, and film production. When you examine the coordinator's logs, you see it decomposed the topic into three subtasks: \"AI in digital art creation,\" \"AI in graphic design,\" and \"AI in photography.\" What is the most likely root cause?",
     a: [
       "The synthesis agent lacks instructions for identifying coverage gaps in the findings it receives from other agents.",
       "The coordinator agent's task decomposition is too narrow, resulting in subagent assignments that don't cover all relevant domains of the topic.",
@@ -1696,8 +1710,10 @@ const ARCHITECT_Q = [
   },
   {
     d: "d5",
+    official: true,
+    src: "Exam Guide v1.0 §9 Sample 8",
     sc: "s3",
-    q: "The web search subagent times out while researching a complex topic. You need to design how this failure information flows back to the coordinator agent. Which error propagation approach best enables intelligent recovery? (official)",
+    q: "The web search subagent times out while researching a complex topic. You need to design how this failure information flows back to the coordinator agent. Which error propagation approach best enables intelligent recovery?",
     a: [
       "Return structured error context to the coordinator including the failure type, the attempted query, any partial results, and potential alternative approaches.",
       "Implement automatic retry logic with exponential backoff within the subagent, returning a generic \"search unavailable\" status only after all retries are exhausted.",
@@ -1709,8 +1725,10 @@ const ARCHITECT_Q = [
   },
   {
     d: "d4",
+    official: true,
+    src: "Exam Guide v1.0 §9 Sample 9",
     sc: "s3",
-    q: "During testing, you observe that the synthesis agent frequently needs to verify specific claims while combining findings. Currently, when verification is needed, the synthesis agent returns control to the coordinator, which invokes the web search agent, then re-invokes synthesis with results. This adds 2-3 round trips per task and increases latency by 40%. Your evaluation shows that 85% of these verifications are simple fact-checks (dates, names, statistics) while 15% require deeper investigation. What's the most effective approach to reduce overhead while maintaining system reliability? (official)",
+    q: "During testing, you observe that the synthesis agent frequently needs to verify specific claims while combining findings. Currently, when verification is needed, the synthesis agent returns control to the coordinator, which invokes the web search agent, then re-invokes synthesis with results. This adds 2-3 round trips per task and increases latency by 40%. Your evaluation shows that 85% of these verifications are simple fact-checks (dates, names, statistics) while 15% require deeper investigation. What's the most effective approach to reduce overhead while maintaining system reliability?",
     a: [
       "Give the synthesis agent a scoped verify_fact tool for simple lookups, while complex verifications continue delegating to the web search agent through the coordinator.",
       "Have the synthesis agent accumulate all verification needs and return them as a batch to the coordinator at the end of its pass, which then sends them all to the web search agent at once.",
@@ -1843,8 +1861,10 @@ const ARCHITECT_Q = [
   // s5 — Claude Code for Continuous Integration
   {
     d: "d2",
+    official: true,
+    src: "Exam Guide v1.0 §9 Sample 10",
     sc: "s5",
-    q: "Your pipeline script runs claude \"Analyze this pull request for security issues\" but the job hangs indefinitely. Logs indicate Claude Code is waiting for interactive input. What's the correct approach to run Claude Code in an automated pipeline? (official)",
+    q: "Your pipeline script runs claude \"Analyze this pull request for security issues\" but the job hangs indefinitely. Logs indicate Claude Code is waiting for interactive input. What's the correct approach to run Claude Code in an automated pipeline?",
     a: [
       "Add the -p flag: claude -p \"Analyze this pull request for security issues\"",
       "Set the environment variable CLAUDE_HEADLESS=true before running the command",
@@ -1856,8 +1876,10 @@ const ARCHITECT_Q = [
   },
   {
     d: "d3",
+    official: true,
+    src: "Exam Guide v1.0 §9 Sample 11",
     sc: "s5",
-    q: "Your team wants to reduce API costs for automated analysis. Currently, real-time Claude calls power two workflows: (1) a blocking pre-merge check that must complete before developers can merge, and (2) a technical debt report generated overnight for review the next morning. Your manager proposes switching both to the Message Batches API for its 50% cost savings. How should you evaluate this proposal? (official)",
+    q: "Your team wants to reduce API costs for automated analysis. Currently, real-time Claude calls power two workflows: (1) a blocking pre-merge check that must complete before developers can merge, and (2) a technical debt report generated overnight for review the next morning. Your manager proposes switching both to the Message Batches API for its 50% cost savings. How should you evaluate this proposal?",
     a: [
       "Use batch processing for the technical debt reports only; keep real-time calls for pre-merge checks.",
       "Switch both workflows to batch processing with status polling to check for completion.",
@@ -1869,8 +1891,10 @@ const ARCHITECT_Q = [
   },
   {
     d: "d3",
+    official: true,
+    src: "Exam Guide v1.0 §9 Sample 12",
     sc: "s5",
-    q: "A pull request modifies 14 files across the stock tracking module. Your single-pass review analyzing all files together produces inconsistent results: detailed feedback for some files but superficial comments for others, obvious bugs missed, and contradictory feedback — flagging a pattern as problematic in one file while approving identical code elsewhere in the same PR. How should you restructure the review? (official)",
+    q: "A pull request modifies 14 files across the stock tracking module. Your single-pass review analyzing all files together produces inconsistent results: detailed feedback for some files but superficial comments for others, obvious bugs missed, and contradictory feedback — flagging a pattern as problematic in one file while approving identical code elsewhere in the same PR. How should you restructure the review?",
     a: [
       "Split into focused passes: analyze each file individually for local issues, then run a separate integration-focused pass examining cross-file data flow.",
       "Require developers to split large PRs into smaller submissions of 3-4 files before the automated review runs.",
