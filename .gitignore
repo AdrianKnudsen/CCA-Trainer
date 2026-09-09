@@ -15,5 +15,7 @@ docs/
 # somewhere else in the repo by accident.
 *.pdf
 
-# Claude's own working list. Local like the other Claude files, never in the repo.
+# Claude's own files: the working list, and the repo notes it reads at session
+# start. Local like everything else Claude-shaped, never in the repo.
 TODO.md
+CLAUDE.md
