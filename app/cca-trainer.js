@@ -267,9 +267,9 @@ function shuffleOptions(q) {
 /* ---------- Answers ----------
    A question's correct answer is either a single option index (`c: 2`) or a set
    of them (`c: [1, 3]`) for a multiple-response item, which the real exam also
-   uses. Array.isArray(q.c) is the whole mechanism, which is why the 156
-   single-answer questions written before multiple-response existed need no
-   edits at all. */
+   uses. Array.isArray(q.c) is the whole mechanism, which is why the 151
+   single-answer Architect questions written before multiple-response existed
+   need no edits at all. */
 function correctSet(q) {
   return Array.isArray(q.c) ? q.c : [q.c];
 }
