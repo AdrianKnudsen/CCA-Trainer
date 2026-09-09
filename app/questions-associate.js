@@ -549,7 +549,7 @@ const ASSOCIATE_Q = [
       "You state a subjective judgement as though it were established fact",
     ],
     c: [1, 2, 5],
-    e: "The listed triggers are a subjective truth stated as fact, a referenced expert source, a question framed with a specific point of view, validation being requested, emotional stakes, and a conversation that gets very long. Length is the counterintuitive one: a long thread feels as though Claude has more context and is therefore more reliable, but it is a named risk factor. Counterarguments, neutral fact-seeking language and starting a new conversation are the counter-strategies, not the triggers.",
+    e: "The listed triggers are a subjective truth stated as fact, a referenced expert source, a question framed with a specific point of view, validation being requested, emotional stakes, and a conversation that gets very long. Length is the counterintuitive one: a long thread feels as though Claude has more context and is therefore more reliable, but it is a named risk factor. Three of the six are wrong for the same reason, and asking for the strongest counterargument is the clearest of them: it is a named way to push back, so it cannot also be a trigger. The two left work the same way - each is a move you make to stop sycophancy, not a condition that brings it on.",
   },
   {
     d: "a2",
@@ -593,7 +593,7 @@ const ASSOCIATE_Q = [
   {
     d: "a2",
     src: "D2-42, D2-41, PRE-09, D2-35",
-    q: "You suspect a long-running conversation has drifted into telling you what you want to hear. Which three of Anthropic's named counter-strategies apply? Select 3.",
+    q: "You suspect a conversation with Claude has drifted into telling you what you want to hear. Which three of Anthropic's named counter-strategies apply? Select 3.",
     a: [
       "Rephrase the question in neutral, fact-seeking language",
       "Tell Claude you are the subject-matter expert so it holds itself to a higher standard",
@@ -642,7 +642,7 @@ const ASSOCIATE_Q = [
       "That Claude's answers vary at random from one chat to the next, so asking the same question twice tells you nothing about reliability.",
     ],
     c: 1,
-    e: "Running the same prompt more than once and comparing the outputs is a named verification technique: inconsistencies across outputs could indicate hallucinations. What the disagreement cannot do is tell you which run was right, because both can be wrong - so it sends you to the report rather than to a tie-breaker. Trusting the longer, more detailed answer is the common instinct and it is backwards, since fabricated detail is exactly what makes a wrong answer read as the confident one. Anthropic's support guidance points the same way: Claude can produce figures and quotes that read as authoritative without being grounded in fact, so it should not be treated as a singular source of truth on something you cannot check.",
+    e: "Running the same prompt more than once and comparing the outputs is a named verification technique: inconsistencies across outputs could indicate hallucinations. What the disagreement cannot do is tell you which run was right, because both can be wrong - so it sends you to the report rather than to a tie-breaker. Trusting the longer, more detailed answer is the common instinct and it is backwards, since fabricated detail is exactly what makes a wrong answer read as the confident one. Anthropic's support guidance points the same way: Claude is not to be relied on as a singular source of truth on something you cannot check yourself.",
   },
   {
     d: "a2",
@@ -682,7 +682,7 @@ const ASSOCIATE_Q = [
       "Circulate the summary with the full regulation attached so readers can check it themselves.",
     ],
     c: [0, 3],
-    e: "For high-stakes work the guidance is to verify key facts independently, and it is explicit that validation builds confidence but does not eliminate responsibility: you stay accountable for checking the results make sense and for being transparent about AI's role. Attaching the source text looks diligent but shifts verification onto readers less equipped to do it, and replaces neither step. A self-flagged uncertainty note is a self-report, not a check.",
+    e: "A plain-language summary of regulatory terms is where the guidance stops being advisory: the facts it turns on have to be checked against the regulation itself, and validation builds confidence without eliminating responsibility - you stay accountable for the result and for being open about how it was produced. Attaching the source text looks diligent but shifts verification onto readers less equipped to do it, and replaces neither step. A self-flagged uncertainty note is a self-report, not a check.",
   },
   {
     d: "a2",
@@ -695,7 +695,7 @@ const ASSOCIATE_Q = [
       "Say that the conclusion should spell out the actions you want the client to take.",
     ],
     c: 3,
-    e: "The guidance is to give specific feedback, and it grades the two shapes in exactly these terms: 'make it shorter' is called fine, while naming what to cut and what the conclusion should do is called better. So the vague instruction is not wrong, it is weaker - which is why the stem asks what fits best rather than what fits. Handing the judgement to Claude sounds like it gives the model room to do its best work, but it withholds the one thing you have that Claude does not - knowledge of what this particular client update has to achieve.",
+    e: "Anthropic's guidance grades two shapes of follow-up in exactly these terms: 'make it shorter' is called fine, while an instruction that names the change you want is called better. Here the draft's gap is that the client is left without a next step, so the useful instruction is the one that says so. The vague version is not wrong, it is weaker - which is why the stem asks what fits best rather than what fits. Handing the judgement to Claude sounds like it gives the model room to do its best work, but it withholds the one thing you have that Claude does not - knowledge of what this particular client update has to achieve.",
   },
   {
     d: "a2",
@@ -913,7 +913,7 @@ const ASSOCIATE_Q = [
       "Sonnet, because a live customer support queue counts as an enterprise workload",
     ],
     c: 2,
-    e: "Haiku is the lowest cost and fastest class, designed for high-frequency workloads where latency and cost matter. Reaching for Opus to be safe is the trap the exam guide itself marks wrong: aligning model selection with task requirements means matching a faster, lower-cost model to straightforward high-volume work and reserving the most capable one for complex reasoning. Sonnet is the right default when you are unsure, but here the task is explicitly simple and high-volume.",
+    e: "Haiku is the lowest cost and fastest class, designed for high-frequency workloads where latency and cost matter. Two thousand messages a day with a queue that has to keep moving is that workload exactly: the constraint is throughput, and the tagging itself needs no depth. Reaching for Opus to be safe is the trap the exam guide itself marks wrong - capability you do not need still costs you latency on every one of those messages. Sonnet is the right default when you are unsure, but here the task is explicitly simple and high-volume.",
   },
   {
     d: "a3",
@@ -1019,7 +1019,7 @@ const ASSOCIATE_Q = [
       "Whichever class replies fastest, since they can always re-run the task if it looks wrong",
     ],
     c: 2,
-    e: "Aligning model selection with task requirements means matching a faster, lower-cost class to straightforward high-volume work and reserving the most capable class for complex reasoning — which is what this is. Sonnet is the tempting answer because it genuinely is the right default, and defaulting is right until a task names the exception: hard reasoning, no time pressure, an expensive failure mode. Haiku inverts the test by reading \"one-off\" as \"small\"; volume is not the same thing as difficulty.",
+    e: "Reconciling four conflicting regulatory documents into a single defensible position is reasoning-intensive enterprise work, which is what the most capable class is held for. Sonnet is the tempting answer because it genuinely is the right default, and defaulting is right until a task names the exception: hard reasoning, no time pressure, an expensive failure mode. Haiku inverts the test by reading \"one-off\" as \"small\"; volume is not the same thing as difficulty.",
   },
   {
     d: "a3",
@@ -1646,7 +1646,7 @@ const ASSOCIATE_Q = [
       "No, because investment recommendations cannot be drafted with AI assistance at all.",
     ],
     c: 2,
-    e: "The requirement is specific about timing: \"a qualified professional in that field must review the content or decision prior to dissemination or finalization.\" Review after the client has read it is quality control, not a control. Reviewing and correcting each recommendation a week later is exactly the shape to watch for in this domain - responsible-sounding, genuinely useful, and it still does not satisfy the requirement. Ruling out AI-assisted drafting altogether overcorrects: Finance is a High-Risk Use Case, which means extra requirements apply, not that the use is forbidden.",
+    e: "The requirement is specific about timing: the review has to happen \"prior to dissemination or finalization.\" Review after the client has read it is quality control, not a control. Reviewing and correcting each recommendation a week later is exactly the shape to watch for in this domain - responsible-sounding, genuinely useful, and it still does not satisfy the requirement. Ruling out AI-assisted drafting altogether overcorrects: Finance is a High-Risk Use Case, which means extra requirements apply, not that the use is forbidden.",
   },
   {
     d: "a6",

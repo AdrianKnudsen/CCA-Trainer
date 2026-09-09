@@ -32,6 +32,7 @@ assets/
   favicon.svg
 tools/
   validate-questions.js       dev tool, see below
+  check-explanation-leaks.js  dev tool, see below
 docs/                         internal notes — gitignored, local only
   guides/                     the official Anthropic exam guides (PDF)
   research/                   sourced fact inventories behind the questions
@@ -60,6 +61,19 @@ anything is wrong.
 It does **not** check whether an answer is factually correct. That is what the
 sourced fact inventories in `docs/research/` and an adversarial review pass are
 for.
+
+```
+node tools/check-explanation-leaks.js
+```
+
+Finds explanations that give away another question's answer. An explanation is
+free text, so it can state, as an aside, the exact fact that is a different
+item's correct answer — and a candidate who meets that explanation first has
+been handed an answer instead of learning it. Each track is checked only
+against itself, since a candidate sits one exam.
+
+Both tools read the built banks in `app/`, and the Associate bank is generated
+from the drafts, so run them after a rebuild rather than before.
 
 ## What's stored in the browser
 
