@@ -29,6 +29,49 @@ const vm = require("vm");
 const BANKS = ["questions-architect.js", "questions-associate.js"];
 // The banks live in app/, one directory up from this tool.
 const APP_DIR = path.join(__dirname, "..", "app");
+// The research notes live in docs/, which is gitignored. Every check that reads
+// them degrades to a notice rather than a failure when the directory is absent,
+// so a fresh clone still validates.
+const RESEARCH_DIR = path.join(__dirname, "..", "docs", "research");
+
+/* Domains whose every question must cite a research row that actually exists.
+   Declared per track and per domain rather than globally, because sourcing was
+   retrofitted one domain at a time: 126 of the 151 Architect questions carry no
+   `src` at all and must not fail the build while their inventory is unwritten.
+   Add a domain here only once its inventory is complete. */
+const SOURCED_DOMAINS = {
+  "CCAO-F": ["a1", "a2", "a3", "a4", "a5", "a6", "a7"],
+  "CCAR-F": ["d2"],
+};
+
+/* Every research row id defined anywhere in the notes. Two namespaces coexist:
+   Associate's `D1-`…`D7-`, `D7X-`, `PRE-` and `BR-`, and Architect's `AR<n>-`
+   where <n> is the app domain. A `src` naming an id that resolves nowhere means
+   the question cites a source that does not exist. */
+function knownRowIds() {
+  const ids = new Set();
+  if (!fs.existsSync(RESEARCH_DIR)) return null;
+  for (const f of fs.readdirSync(RESEARCH_DIR)) {
+    if (!f.endsWith(".md")) continue;
+    const txt = fs.readFileSync(path.join(RESEARCH_DIR, f), "utf8");
+    for (const m of txt.matchAll(/\b((?:D[1-7]X?|PRE|BR)-\d{2}|AR[1-5]-\d{2})\b/g)) ids.add(m[1]);
+  }
+  return ids;
+}
+
+/* An official item cites the guide sample it reproduces rather than a research
+   row — "Exam Guide v1.0 §9 Sample 4" carries no row id and would fail
+   resolution outright. It is checked against that shape instead. */
+const GUIDE_CITATION = /^Exam Guide v[\d.]+ §\d+ Sample \d+$/;
+
+/* A non-official item may also cite a guide objective, as "Exam Guide v1.0 §6
+   3.5". That is not a loophole for lazy sourcing: a few learning objectives are
+   things the guide's authors assert and Anthropic has published nothing else
+   about, and for those the guide genuinely is the source. The exam is written
+   against it, so an item tracing to an objective is sourced — but the citation
+   is deliberately conspicuous, because a domain full of them means the
+   objectives are thinly covered and the questions rest on one document. */
+const GUIDE_OBJECTIVE = /^Exam Guide v[\d.]+ §\d+ \d+\.\d+$/;
 
 /* The banks are plain <script> files that declare top-level `const`s for the
    browser. A top-level `const` in a vm script lives in lexical scope rather
@@ -50,7 +93,7 @@ function loadTracks() {
   return ctx.out;
 }
 
-function checkQuestion(ex, q, i, domainIds, problems) {
+function checkQuestion(ex, q, i, domainIds, problems, rowIds) {
   const at = `${ex.code}[${i}]`;
   const say = (msg) => problems.push(`${at}: ${msg}`);
 
@@ -87,6 +130,33 @@ function checkQuestion(ex, q, i, domainIds, problems) {
   if (q.official) {
     if (Array.isArray(q.c)) say("is an official guide sample, so it cannot be multiple-response");
     if (!q.src) say("is marked official but doesn't say which guide sample it is");
+    else if (!GUIDE_CITATION.test(q.src))
+      say(`is official but its src "${q.src}" isn't a guide citation like "Exam Guide v1.0 §9 Sample 4"`);
+  }
+
+  /* The real exam states how many responses to select, so the bank does too.
+     Both guides put it the same way, and the count has to match the key or the
+     item is unanswerable as written. */
+  if (Array.isArray(q.c)) {
+    const stated = /Select (\d+)\./.exec(q.q);
+    if (!stated) say(`is multiple-response but its stem never says "Select ${correct.length}."`);
+    else if (Number(stated[1]) !== correct.length)
+      say(`says "Select ${stated[1]}." but has ${correct.length} correct answers`);
+  } else if (/Select \d+\./.test(q.q)) {
+    say('is single-answer but its stem says "Select N."');
+  }
+
+  /* Sourcing, for the domains that have an inventory. `official` items cite a
+     guide sample instead and were checked above. */
+  if (rowIds && (SOURCED_DOMAINS[ex.code] || []).includes(q.d) && !q.official) {
+    if (!q.src) say(`is in sourced domain ${q.d} but has no src`);
+    else if (!GUIDE_OBJECTIVE.test(q.src)) {
+      const cited = [...q.src.matchAll(/\b((?:D[1-7]X?|PRE|BR)-\d{2}|AR[1-5]-\d{2})\b/g)].map((m) => m[1]);
+      if (!cited.length)
+        say(`src "${q.src}" names no research row id, and isn't a guide objective like "Exam Guide v1.0 §6 3.5"`);
+      const dangling = cited.filter((id) => !rowIds.has(id));
+      if (dangling.length) say(`src cites ${dangling.join(", ")}, which resolve to no research row`);
+    }
   }
 
   // Scenarios: a reference must resolve, and a track whose guide describes no
@@ -108,10 +178,10 @@ function checkQuestion(ex, q, i, domainIds, problems) {
    an in-house question was flagged by mistake. */
 const OFFICIAL_SAMPLES = { "CCAO-F": 3, "CCAR-F": 12 };
 
-function report(ex) {
+function report(ex, rowIds) {
   const domainIds = new Set(ex.domains.map((d) => d.id));
   const problems = [];
-  ex.questions.forEach((q, i) => checkQuestion(ex, q, i, domainIds, problems));
+  ex.questions.forEach((q, i) => checkQuestion(ex, q, i, domainIds, problems, rowIds));
 
   const expected = OFFICIAL_SAMPLES[ex.code];
   const official = ex.questions.filter((q) => q.official).length;
@@ -150,7 +220,13 @@ function report(ex) {
 }
 
 const tracks = loadTracks();
-const bad = tracks.reduce((a, ex) => a + report(ex), 0);
+const rowIds = knownRowIds();
+if (!rowIds)
+  console.log(
+    `\nNo ${path.relative(path.join(__dirname, ".."), RESEARCH_DIR)}/ directory, so src resolution is skipped.` +
+      `\nThat directory is gitignored; the check runs where the research notes exist.`,
+  );
+const bad = tracks.reduce((a, ex) => a + report(ex, rowIds), 0);
 console.log(
   bad ? `\n${bad} structural problem(s) found.\n` : "\nNo structural problems.\n",
 );
