@@ -3,8 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CCA Trainer · Claude Certified Architect</title>
-    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <title>CCA Trainer · Claude Certified Architect &amp; Associate</title>
+    <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -32,8 +32,8 @@
         }
       })();
     </script>
-    <!-- Styles: see cca-trainer.css -->
-    <link rel="stylesheet" href="cca-trainer.css" />
+    <!-- Styles: see app/cca-trainer.css -->
+    <link rel="stylesheet" href="app/cca-trainer.css" />
   </head>
   <body>
     <button id="themeToggle" class="theme-toggle" type="button"></button>
@@ -58,11 +58,14 @@
     </button>
     <div class="wrap" id="app"></div>
 
-    <!-- Question data: see questions.js. Loaded before cca-trainer.js so
-     DOMAINS/SCENARIOS/Q are already defined as globals when it runs. -->
-    <script src="questions.js"></script>
+    <!-- Question data, one file per exam track. Both are loaded before
+     cca-trainer.js so EXAM_ARCHITECT and EXAM_ASSOCIATE are already defined as
+     globals when it runs. Plain <script> tags rather than fetch(), because the
+     app is opened as a local file and file:// blocks fetch(). -->
+    <script src="app/questions-architect.js"></script>
+    <script src="app/questions-associate.js"></script>
     <!-- Logic: see cca-trainer.js. Placed at the bottom so that #app already
      exists in the DOM when the script runs. -->
-    <script src="cca-trainer.js"></script>
+    <script src="app/cca-trainer.js"></script>
   </body>
 </html>

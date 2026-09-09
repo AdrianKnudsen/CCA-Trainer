@@ -1,16 +1,22 @@
 /* ============================================================
-   CCA Trainer · question data
+   CCA Trainer · question data · Claude Certified ARCHITECT – Foundations
    ------------------------------------------------------------
-   Domains, scenarios and the question bank. Split out from
-   cca-trainer.js on 2026-08-21 for readability, and loaded via a
-   plain <script> tag (before cca-trainer.js) rather than fetch() —
-   the app is opened as a local file, and fetch() of a local JSON
-   file is blocked by the browser's file:// CORS policy.
+   Domains, scenarios, the question bank and the exam descriptor for the
+   Architect track (exam code CCAR-F). Loaded via a plain <script> tag
+   (before cca-trainer.js) rather than fetch() — the app is opened as a
+   local file, and fetch() of a local JSON file is blocked by the
+   browser's file:// CORS policy.
+
+   Everything here is namespaced ARCHITECT_* and gathered into the
+   EXAM_ARCHITECT descriptor at the bottom of the file, because a second
+   track (questions-associate.js) defines the same shapes for its own
+   exam. cca-trainer.js never reads these names directly — it goes
+   through the active track's descriptor.
    ============================================================ */
 
 /* ---------- Domains (weights confirmed against the official Anthropic "Claude Certified
    Architect – Foundations" Exam Guide, v1.0, effective July 2026, exam code CCAR-F) ---------- */
-const DOMAINS = [
+const ARCHITECT_DOMAINS = [
   {
     id: "d1",
     name: "Agentic architecture & orchestration",
@@ -55,7 +61,7 @@ const DOMAINS = [
 
 /* ---------- Scenarios (shared setup for a group of questions; mirrors the real
    exam's scenario-based format). A question links to one via its `sc` field. ---------- */
-const SCENARIOS = {
+const ARCHITECT_SCENARIOS = {
   s1: {
     domains: ["d1", "d4", "d5"],
     title: "Customer Support Resolution Agent",
@@ -95,7 +101,7 @@ const SCENARIOS = {
 };
 
 /* ---------- Question bank (practice questions, not real exam items) ---------- */
-const Q = [
+const ARCHITECT_Q = [
   // D1 — Agentic (10)
   {
     d: "d1",
@@ -221,6 +227,7 @@ const Q = [
   // D2 — Claude Code (7)
   {
     d: "d2",
+    src: "AR2-01",
     q: "What is the main purpose of a CLAUDE.md file in a project?",
     a: [
       "To store API keys, tokens and other secrets the project needs at startup",
@@ -229,10 +236,11 @@ const Q = [
       "To define the CI/CD pipeline that runs automatically when code is pushed to the main branch",
     ],
     c: 1,
-    e: "CLAUDE.md is the persistent context layer: how this project fits together, which conventions and commands apply. Never put secrets there.",
+    e: "CLAUDE.md is the persistent context layer: how a codebase fits together, which conventions apply, which build and test steps are expected. It is read at the start of every session, which is also why secrets never belong in it.",
   },
   {
     d: "d2",
+    src: "AR2-03, AR2-04",
     q: "A team of 20 works on a monorepo. Where should shared conventions live versus personal preferences?",
     a: [
       "Everything in each developer's personal config, so no one overrides anyone else's setup",
@@ -281,6 +289,7 @@ const Q = [
   },
   {
     d: "d2",
+    src: "AR2-44",
     q: "How are skills best described, conceptually?",
     a: [
       "Third-party language models you download and run alongside Claude locally",
@@ -641,6 +650,7 @@ const Q = [
   // D2 — Claude Code (7 more)
   {
     d: "d2",
+    src: "AR2-08",
     q: "Why should CLAUDE.md be kept concise and high-signal?",
     a: [
       "Because long files are cumbersome to commit and create unnecessary merge conflicts on the team",
@@ -653,6 +663,7 @@ const Q = [
   },
   {
     d: "d2",
+    src: "AR2-45",
     q: "You want to delegate a scoped subtask without filling the main conversation with noise. What fits?",
     a: [
       "Paste everything relevant into the main conversation so Claude has full visibility at all times",
@@ -665,6 +676,7 @@ const Q = [
   },
   {
     d: "d2",
+    src: "AR2-02, AR2-05",
     q: "You have conventions that apply to the whole repo, and some that apply to just one subfolder. How is that best solved?",
     a: [
       "Everything in one CLAUDE.md at the root, with clear headings for each folder",
@@ -1024,18 +1036,22 @@ const Q = [
   // D2 additions
   {
     d: "d2",
-    q: "Your root CLAUDE.md is getting long, and you want to pull in a package's specific coding standards without copy-pasting them into the main file. What's the mechanism for this?",
+    src: "AR2-06, AR2-07, AR2-08",
+    q: "Your root CLAUDE.md is getting long, so you use @import to pull a package's coding standards in from a separate file instead of pasting them into the main file. Which two things are true of what you have just done? Select 2.",
     a: [
-      "Copy the relevant sections into the package's own CLAUDE.md so it stays self-contained",
-      "Use the @import syntax in CLAUDE.md to reference the external standards file",
-      "Paste the standards as a comment block at the top of the package's main source file",
-      "Rename the file to CLAUDE.local.md so it's excluded from version control",
+      "It keeps the main file modular by referencing the standards file instead of copying it in",
+      "It does not reduce context, because imported files are loaded at launch alongside the file that references them",
+      "The standards file is read only when Claude opens a file inside that package",
+      "The import is resolved once and cached, so later edits to the standards file need a session restart",
+      "An import inside a fenced code block is followed too, so paths in examples have to be escaped",
+      "Claude re-reads the standards file at the start of each turn, so edits to it take effect immediately",
     ],
-    c: 1,
-    e: "@import syntax lets a CLAUDE.md reference external files directly, so you can pull in only the standards relevant to a given package and keep the main file modular instead of duplicating content. Copy-pasting drifts out of sync over time, a comment in a source file isn't loaded as project context, and renaming to CLAUDE.local.md only changes sharing scope, not modularity.",
+    c: [0, 1],
+    e: "@import lets a CLAUDE.md reference an external file rather than duplicate it, which is genuinely useful for keeping a long file modular. What it does not do is save context: an imported file is expanded and loaded at launch alongside the CLAUDE.md that references it, so the tokens arrive either way. The documented remedy for a file that is growing too large is a path-scoped rule in .claude/rules/, which loads only when Claude works with matching files — that is the option that would make the standards load lazily, and @import is not it. Import parsing skips code spans and fenced blocks, so a path mentioned in an example is left alone rather than followed.",
   },
   {
     d: "d2",
+    src: "AR2-08, AR2-28",
     q: "Your CLAUDE.md has grown into one long file mixing testing conventions, API conventions, and deployment steps, and it's becoming hard to maintain. What's a better structure for this?",
     a: [
       "Split it into topic-specific files like testing.md, api-conventions.md, and deployment.md inside .claude/rules/",
@@ -1048,18 +1064,22 @@ const Q = [
   },
   {
     d: "d2",
-    q: "You built a custom slash command that the whole team should get automatically when they clone the repo. Where should it live?",
+    src: "AR2-13, AR2-14",
+    q: "A developer wants the team's shared /deploy skill to behave slightly differently for them, so they put an edited version at ~/.claude/skills/deploy/SKILL.md, keeping the same name. Which two consequences follow? Select 2.",
     a: [
-      "In ~/.claude/commands/, so it follows you personally into every project",
-      "In .claude/commands/ inside the repo, committed to version control",
-      "Anywhere on disk — slash commands are found by filename regardless of location",
-      "Written out as plain instructions inside CLAUDE.md instead of as a command",
+      "Their /deploy now resolves to the personal file, so later changes the team makes to the project skill no longer reach them",
+      "The personal skill is active in every project they open on that machine, not only this repository",
+      "Claude Code reports a name collision at startup and refuses to load either skill until one of the two is renamed",
+      "The project skill still wins, because a skill committed to the repository outranks one that exists only locally",
+      "The two files are merged, with the personal file's frontmatter taking precedence over the project file's field by field",
+      "Their edited version is shared back to the team the next time they commit, since skills travel with the repository",
     ],
-    c: 1,
-    e: "Project-scoped commands live in .claude/commands/ and are shared with the whole team via version control, while ~/.claude/commands/ is user-scoped and personal to you alone. Slash commands aren't discovered from arbitrary locations, and writing it as CLAUDE.md prose loses the reusable, invokable command format.",
+    c: [0, 1],
+    e: "Personal skills sit above project skills in the resolution order, so a personal file with the same name shadows the team's rather than conflicting with it — the collision is silent, and it is why the guidance is to give a personal variant a different name. The second consequence is easy to miss: ~/.claude/skills/ is not tied to one checkout, so the shadowing follows them into every codebase they open on that machine. Nothing merges the two files, neither is refused, and a file under the home directory is outside the repository, so committing does not share it.",
   },
   {
     d: "d2",
+    src: "AR2-15",
     q: "A skill you built runs a deep codebase analysis and produces a lot of exploratory output you don't want cluttering the main conversation. Which SKILL.md frontmatter option addresses this?",
     a: [
       "allowed-tools, to restrict which tools the skill can call",
@@ -1068,10 +1088,11 @@ const Q = [
       "A longer description field documenting how verbose the skill is",
     ],
     c: 2,
-    e: "context: fork runs a skill in an isolated sub-agent context, so verbose or exploratory output like a codebase analysis doesn't pollute the main conversation. allowed-tools restricts tool access rather than isolating output, argument-hint just prompts for missing parameters, and a description field is documentation, not an isolation mechanism.",
+    e: "context: fork runs a skill in an isolated sub-agent context, so verbose or exploratory output like a codebase analysis doesn't pollute the main conversation. The other frontmatter fields address different problems entirely: two of them concern what the skill may do and what it should be invoked with, and the description field is documentation. None of them changes where the skill's output lands.",
   },
   {
     d: "d2",
+    src: "AR2-17",
     q: "You're writing a skill that should only ever write files — never run shell commands or hit the network — no matter what a later prompt tries to get it to do. What actually enforces that?",
     a: [
       "A strongly worded warning in the skill's own instructions",
@@ -1080,10 +1101,11 @@ const Q = [
       "Adding an argument-hint so users know what to pass in",
     ],
     c: 1,
-    e: "allowed-tools in skill frontmatter restricts which tools are available during execution, which is the actual enforcement mechanism for preventing destructive actions like shell commands or network calls. A prompt warning is instruction the model could still deviate from, context: fork isolates conversation context rather than tool access, and argument-hint has nothing to do with tool restriction.",
+    e: "allowed-tools in skill frontmatter is the field that governs which tools are available while the skill runs, so it is the mechanism rather than an instruction the model may or may not follow. Two details worth carrying: whatever it sets applies to the turn that invokes the skill and clears on your next message, so it is not a standing policy for the session; and current Claude Code documentation frames the field as pre-approving tools rather than as removing them, which is the same field described from the other side. A prompt warning is still only instruction, context: fork isolates conversation context rather than tool access, and argument-hint has nothing to do with tools at all.",
   },
   {
     d: "d2",
+    src: "AR2-23, AR2-26",
     q: "You have conventions specific to Terraform files, but they're spread across several directories rather than confined to one folder. How should this be scoped?",
     a: [
       "One section in the root CLAUDE.md that mentions Terraform",
@@ -1092,22 +1114,26 @@ const Q = [
       "A slash command developers have to remember to run before editing Terraform files",
     ],
     c: 1,
-    e: "A .claude/rules/ file can use YAML frontmatter with a paths field of glob patterns, so paths: [\"terraform/**/*\"] loads the rule only when a matching file is being edited, regardless of directory. A root CLAUDE.md section loads unconditionally for every task, duplicating CLAUDE.md across every directory doesn't scale, and a manual slash command depends on someone remembering to run it.",
+    e: "The point of scoping by pattern is when the instructions arrive: the rule enters the context as Claude reads a file the pattern matches, and stays out of it otherwise, which is what makes conventions for a scattered file type affordable. A section in the root file has no such trigger — it is present for every task whether or not any Terraform is involved. Copying a file into each directory does not scale and misses files that live elsewhere, and a command someone has to remember to run is not a convention at all.",
   },
   {
     d: "d2",
-    q: "You're about to migrate a library used across 45+ files in the codebase, with a few different valid approaches depending on infrastructure constraints. Direct execution or plan mode?",
+    src: "AR2-30, AR2-32, AR2-33",
+    q: "You investigated a library migration in plan mode, Claude has produced a plan, and you choose one of the approve options. Which two things are true of what happens next? Select 2.",
     a: [
-      "Direct execution — migrations are mechanical, so there's no need to plan first",
-      "Plan mode — this has architectural implications and multiple valid approaches worth exploring first",
-      "Neither — split the work into 45 separate single-file sessions instead",
-      "Direct execution, but only after writing a full test suite for every file first",
+      "The session leaves plan mode and switches to the editing permission mode the approve option named",
+      "To plan again later, you re-enter plan mode with Shift+Tab or by prefixing a prompt with /plan",
+      "The session stays in plan mode, and each edit is put to you for approval as it comes up",
+      "The approved plan is written to disk so a later session can pick it up where this one stopped",
+      "Claude re-checks the plan against the codebase before every subsequent turn",
+      "The block on edits holds until you leave plan mode yourself with Shift+Tab",
     ],
-    c: 1,
-    e: "Plan mode is meant for exactly this kind of task: large-scale, multi-file changes with more than one valid approach and real architectural weight, where exploring the codebase and the tradeoffs before committing prevents costly rework. Direct execution fits small, well-scoped changes, not a 45+ file migration with competing infrastructure approaches, and splitting into dozens of isolated single-file sessions ignores that the decision itself needs to be made holistically first.",
+    c: [0, 1],
+    e: "Approving is a mode change, not a queue of pending edits: the session exits plan mode and enters whichever editing mode the option you picked describes, so Claude starts changing files from that point. That is what makes the guide's investigate-then-implement pattern work — plan mode for the research, an ordinary editing mode for the execution. It also means planning is not a state you stay in: to plan the next piece of work you deliberately go back, with Shift+Tab or a /plan prefix. Nothing persists the plan to disk for another session, and nothing re-validates it turn by turn.",
   },
   {
     d: "d2",
+    src: "Exam Guide v1.0 §6 3.5",
     q: "You're about to implement a caching layer in a domain you don't know well, and you're not sure what failure modes or invalidation strategies you should even be considering. What's a useful pattern here?",
     a: [
       "Have Claude ask you questions first, to surface considerations you may not have anticipated",
@@ -1120,18 +1146,22 @@ const Q = [
   },
   {
     d: "d2",
-    q: "You want to call Claude Code from a CI pipeline to review a diff and post structured findings as PR comments, with no risk of the process hanging on an interactive prompt. Which flags matter here?",
+    src: "AR2-39, AR2-41",
+    q: "Your CI job already runs Claude Code with a JSON schema, and you are writing the script that consumes what comes back. Which two things are true of that response? Select 2.",
     a: [
-      "--verbose combined with --no-cache",
-      "-p (or --print) for non-interactive mode, plus --output-format json with --json-schema for structured output",
-      "--dry-run, so the pipeline never actually calls the model",
-      "--session-id, to keep every CI run in the same conversation",
+      "The structured result arrives in a structured_output field, beside metadata about the request",
+      "The payload carries a cost estimate for the call, which is calculated client-side and can differ from the actual bill",
+      "The response is the structured object itself, so the script can parse it without unwrapping anything",
+      "A schema field declared with a format keyword is validated, so the script can trust the values it names",
+      "The schema is echoed back in the payload, so a script can confirm which version the run used",
+      "Session and usage metadata are written to a sidecar file rather than included in the response",
     ],
-    c: 1,
-    e: "-p (or --print) runs Claude Code in non-interactive mode so it never hangs waiting for input in a pipeline, and --output-format json with --json-schema enforces machine-parseable structured output that can be posted as inline PR comments automatically. The other options either don't serve this purpose or work against the goal — --dry-run would skip the actual review, and reusing one session across runs is the opposite of the isolation CI needs.",
+    c: [0, 1],
+    e: "The response is a wrapper, not the object you asked for: request metadata such as the session id and usage sits alongside the structured result, which is carried in its own structured_output field, so a consuming script has to reach into it. The cost figures are worth knowing about for a different reason — they let a script track spend per invocation without going to the usage dashboard, but they are client-side estimates and are not the authority on what you are charged. The format keyword is accepted but treated as an annotation rather than enforced, so a value it describes still has to be checked.",
   },
   {
     d: "d2",
+    src: "Exam Guide v1.0 §6 3.6",
     q: "A CI pipeline uses the same Claude Code session that just wrote a code change to also review that change before merging. Why is this weaker than an independent review pass?",
     a: [
       "It isn't weaker — the same session has full context and is objectively the best reviewer",
@@ -1517,8 +1547,10 @@ const Q = [
   // s1 — Customer Support Resolution Agent
   {
     d: "d1",
+    official: true,
+    src: "Exam Guide v1.0 §9 Sample 1",
     sc: "s1",
-    q: "Production data shows that in 12% of cases, your agent skips get_customer entirely and calls lookup_order using only the customer's stated name, occasionally leading to misidentified accounts and incorrect refunds. What change would most effectively address this reliability issue? (official)",
+    q: "Production data shows that in 12% of cases, your agent skips get_customer entirely and calls lookup_order using only the customer's stated name, occasionally leading to misidentified accounts and incorrect refunds. What change would most effectively address this reliability issue?",
     a: [
       "Add a programmatic prerequisite that blocks lookup_order and process_refund calls until get_customer has returned a verified customer ID.",
       "Enhance the system prompt to state that customer verification via get_customer is mandatory before any order operations.",
@@ -1530,8 +1562,10 @@ const Q = [
   },
   {
     d: "d4",
+    official: true,
+    src: "Exam Guide v1.0 §9 Sample 2",
     sc: "s1",
-    q: "Production logs show the agent frequently calls get_customer when users ask about orders (e.g., \"check my order #12345\"), instead of calling lookup_order. Both tools have minimal descriptions (\"Retrieves customer information\" / \"Retrieves order details\") and accept similar identifier formats. What's the most effective first step to improve tool selection reliability? (official)",
+    q: "Production logs show the agent frequently calls get_customer when users ask about orders (e.g., \"check my order #12345\"), instead of calling lookup_order. Both tools have minimal descriptions (\"Retrieves customer information\" / \"Retrieves order details\") and accept similar identifier formats. What's the most effective first step to improve tool selection reliability?",
     a: [
       "Add few-shot examples to the system prompt demonstrating correct tool selection patterns, with 5-8 examples showing order-related queries routing to lookup_order.",
       "Expand each tool's description to include input formats it handles, example queries, edge cases, and boundaries explaining when to use it versus similar tools.",
@@ -1543,8 +1577,10 @@ const Q = [
   },
   {
     d: "d5",
+    official: true,
+    src: "Exam Guide v1.0 §9 Sample 3",
     sc: "s1",
-    q: "Your agent achieves 55% first-contact resolution, well below the 80% target. Logs show it escalates straightforward cases (standard damage replacements with photo evidence) while attempting to autonomously handle complex situations requiring policy exceptions. What's the most effective way to improve escalation calibration? (official)",
+    q: "Your agent achieves 55% first-contact resolution, well below the 80% target. Logs show it escalates straightforward cases (standard damage replacements with photo evidence) while attempting to autonomously handle complex situations requiring policy exceptions. What's the most effective way to improve escalation calibration?",
     a: [
       "Add explicit escalation criteria to your system prompt with few-shot examples demonstrating when to escalate versus resolve autonomously.",
       "Have the agent self-report a confidence score (1-10) before each response and automatically route requests to humans when confidence falls below a threshold.",
@@ -1597,8 +1633,10 @@ const Q = [
   // s2 — Code Generation with Claude Code
   {
     d: "d2",
+    official: true,
+    src: "Exam Guide v1.0 §9 Sample 4",
     sc: "s2",
-    q: "You want to create a custom /review slash command that runs your team's standard code review checklist. This command should be available to every developer when they clone or pull the repository. Where should you create this command file? (official)",
+    q: "You want to create a custom /review slash command that runs your team's standard code review checklist. This command should be available to every developer when they clone or pull the repository. Where should you create this command file?",
     a: [
       "In the .claude/commands/ directory in the project repository",
       "In ~/.claude/commands/ in each developer's home directory",
@@ -1606,12 +1644,14 @@ const Q = [
       "In a .claude/config.json file with a commands array",
     ],
     c: 0,
-    e: "Project-scoped custom slash commands belong in .claude/commands/ within the repository — version-controlled and automatically available to everyone who clones or pulls it. ~/.claude/commands/ is for personal commands not shared via version control, CLAUDE.md is for project instructions and context rather than command definitions, and a commands array in .claude/config.json describes a mechanism that doesn't exist in Claude Code.",
+    e: "Project-scoped custom slash commands belong in .claude/commands/ within the repository — version-controlled and automatically available to everyone who clones or pulls it. Of the alternatives, one puts the file under the developer's home directory, which is outside the repository entirely; one puts it in the file meant for project instructions and context rather than command definitions; and one names a configuration mechanism that does not exist in Claude Code.",
   },
   {
     d: "d2",
+    official: true,
+    src: "Exam Guide v1.0 §9 Sample 5",
     sc: "s2",
-    q: "You've been assigned to restructure the team's monolithic application into microservices. This will involve changes across dozens of files and requires decisions about service boundaries and module dependencies. Which approach should you take? (official)",
+    q: "You've been assigned to restructure the team's monolithic application into microservices. This will involve changes across dozens of files and requires decisions about service boundaries and module dependencies. Which approach should you take?",
     a: [
       "Enter plan mode to explore the codebase, understand dependencies, and design an implementation approach before making changes.",
       "Start with direct execution and make changes incrementally, letting the implementation reveal the natural service boundaries.",
@@ -1623,8 +1663,10 @@ const Q = [
   },
   {
     d: "d2",
+    official: true,
+    src: "Exam Guide v1.0 §9 Sample 6",
     sc: "s2",
-    q: "Your codebase has distinct areas with different coding conventions: React components use functional style with hooks, API handlers use async/await with specific error handling, and database models follow a repository pattern. Test files are spread throughout the codebase alongside the code they test (e.g., Button.test.tsx next to Button.tsx), and you want all tests to follow the same conventions regardless of location. What's the most maintainable way to ensure Claude automatically applies the correct conventions when generating code? (official)",
+    q: "Your codebase has distinct areas with different coding conventions: React components use functional style with hooks, API handlers use async/await with specific error handling, and database models follow a repository pattern. Test files are spread throughout the codebase alongside the code they test (e.g., Button.test.tsx next to Button.tsx), and you want all tests to follow the same conventions regardless of location. What's the most maintainable way to ensure Claude automatically applies the correct conventions when generating code?",
     a: [
       "Create rule files in .claude/rules/ with YAML frontmatter specifying glob patterns to conditionally apply conventions based on file paths",
       "Consolidate all conventions in the root CLAUDE.md file under headers for each area, relying on Claude to infer which section applies",
@@ -1637,28 +1679,30 @@ const Q = [
   {
     d: "d2",
     sc: "s2",
-    q: "You want a custom slash command for the team's release checklist, available to every teammate through version control. Where should you put it?",
+    src: "AR2-19",
+    q: "Your team's release-checklist command needs a version number to work, and teammates keep invoking it with no argument and getting a confused answer. Which frontmatter field is meant for this?",
     a: [
-      "~/.claude/commands/ so it's available on your machine only",
-      ".claude/commands/ inside the repo, so it's shared via version control",
-      "Inline in CLAUDE.md as a bullet list",
-      "In a private gist you link from Slack",
+      "allowed-tools, listing the tools the command may use once it runs",
+      "argument-hint in the frontmatter, which shows the expected arguments during autocomplete",
+      "description, extended to spell out the argument in prose the model reads",
+      "context, set to fork so the command runs in its own subagent context",
     ],
     c: 1,
-    e: "Project-scoped commands in .claude/commands/ are committed to the repo, so every teammate gets them automatically. User-scoped commands in ~/.claude/commands/ are personal and never shared, which is the wrong place for a team-wide checklist.",
+    e: "argument-hint exists for exactly this: it surfaces the expected arguments during autocomplete, so the shape of the invocation is visible at the moment someone types the command rather than discovered afterwards from a poor answer. A description tells the model what the command is for and is never surfaced as a prompt for parameters; one of the other fields concerns tool availability rather than input; and context: fork changes where the command runs, not what it is called with.",
   },
   {
     d: "d2",
     sc: "s2",
+    src: "AR2-30, AR2-31",
     q: "A developer asks Claude Code to add one validation check to a single function, with a clear stack trace pointing at the bug. Should they use plan mode first?",
     a: [
-      "Yes — every code change should go through plan mode for safety",
-      "Plan mode, to explore the codebase and weigh approaches before committing to changes",
+      "Yes, because the change touches validation, and input handling always warrants a design pass",
+      "Yes, because the file is shared with other features and a plan is the only way to see what else reads it",
       "No — this is a simple, well-scoped change, so direct execution is appropriate",
-      "No — plan mode should be reserved exclusively for CI pipelines",
+      "No, because plan mode blocks edits, and a fix this small would need a second approval round to land at all",
     ],
     c: 2,
-    e: "Plan mode exists for complex tasks with architectural implications or multiple valid approaches. A single-file fix with a clear stack trace is well-scoped, so direct execution is the appropriate, faster choice.",
+    e: "The scope of the change is what decides this, and here it is one function with the fault already located. Direct execution fits, and reaching for a research phase you do not need only costs a round trip. The first two options both argue from something other than scope — the subject matter of the code, or the file's other readers — neither of which makes a located one-line fix into a design question. The last one has the mechanism right but the conclusion wrong: edits really are blocked until the plan is approved, and approving it is a single step rather than a reason to avoid planning when planning is warranted.",
   },
   {
     d: "d5",
@@ -1677,8 +1721,10 @@ const Q = [
   // s3 — Multi-Agent Research System
   {
     d: "d1",
+    official: true,
+    src: "Exam Guide v1.0 §9 Sample 7",
     sc: "s3",
-    q: "After running the system on the topic \"impact of AI on creative industries,\" you observe that each subagent completes successfully: the web search agent finds relevant articles, the document analysis agent summarizes papers correctly, and the synthesis agent produces coherent output. However, the final reports cover only visual arts, completely missing music, writing, and film production. When you examine the coordinator's logs, you see it decomposed the topic into three subtasks: \"AI in digital art creation,\" \"AI in graphic design,\" and \"AI in photography.\" What is the most likely root cause? (official)",
+    q: "After running the system on the topic \"impact of AI on creative industries,\" you observe that each subagent completes successfully: the web search agent finds relevant articles, the document analysis agent summarizes papers correctly, and the synthesis agent produces coherent output. However, the final reports cover only visual arts, completely missing music, writing, and film production. When you examine the coordinator's logs, you see it decomposed the topic into three subtasks: \"AI in digital art creation,\" \"AI in graphic design,\" and \"AI in photography.\" What is the most likely root cause?",
     a: [
       "The synthesis agent lacks instructions for identifying coverage gaps in the findings it receives from other agents.",
       "The coordinator agent's task decomposition is too narrow, resulting in subagent assignments that don't cover all relevant domains of the topic.",
@@ -1690,8 +1736,10 @@ const Q = [
   },
   {
     d: "d5",
+    official: true,
+    src: "Exam Guide v1.0 §9 Sample 8",
     sc: "s3",
-    q: "The web search subagent times out while researching a complex topic. You need to design how this failure information flows back to the coordinator agent. Which error propagation approach best enables intelligent recovery? (official)",
+    q: "The web search subagent times out while researching a complex topic. You need to design how this failure information flows back to the coordinator agent. Which error propagation approach best enables intelligent recovery?",
     a: [
       "Return structured error context to the coordinator including the failure type, the attempted query, any partial results, and potential alternative approaches.",
       "Implement automatic retry logic with exponential backoff within the subagent, returning a generic \"search unavailable\" status only after all retries are exhausted.",
@@ -1703,8 +1751,10 @@ const Q = [
   },
   {
     d: "d4",
+    official: true,
+    src: "Exam Guide v1.0 §9 Sample 9",
     sc: "s3",
-    q: "During testing, you observe that the synthesis agent frequently needs to verify specific claims while combining findings. Currently, when verification is needed, the synthesis agent returns control to the coordinator, which invokes the web search agent, then re-invokes synthesis with results. This adds 2-3 round trips per task and increases latency by 40%. Your evaluation shows that 85% of these verifications are simple fact-checks (dates, names, statistics) while 15% require deeper investigation. What's the most effective approach to reduce overhead while maintaining system reliability? (official)",
+    q: "During testing, you observe that the synthesis agent frequently needs to verify specific claims while combining findings. Currently, when verification is needed, the synthesis agent returns control to the coordinator, which invokes the web search agent, then re-invokes synthesis with results. This adds 2-3 round trips per task and increases latency by 40%. Your evaluation shows that 85% of these verifications are simple fact-checks (dates, names, statistics) while 15% require deeper investigation. What's the most effective approach to reduce overhead while maintaining system reliability?",
     a: [
       "Give the synthesis agent a scoped verify_fact tool for simple lookups, while complex verifications continue delegating to the web search agent through the coordinator.",
       "Have the synthesis agent accumulate all verification needs and return them as a batch to the coordinator at the end of its pass, which then sends them all to the web search agent at once.",
@@ -1784,19 +1834,21 @@ const Q = [
   {
     d: "d2",
     sc: "s4",
+    src: "AR2-30",
     q: "An engineer asks the agent to help migrate a legacy authentication library used across 45+ files, with two viable integration approaches that have different infrastructure implications. What's the appropriate mode?",
     a: [
       "Direct execution, to move fast and fix issues as they come up",
-      "Plan mode, to explore the codebase and weigh approaches before committing to changes",
+      "Plan mode, so the tradeoffs between the two integration paths are settled before any file is touched",
       "Skip both and let the agent choose the approach silently",
       "Direct execution, but only touching one file at a time",
     ],
     c: 1,
-    e: "Plan mode is designed for large-scale changes with multiple valid approaches and architectural implications, like this migration across 45+ files. It lets the agent explore the codebase and propose a direction before any file is actually touched, avoiding costly rework.",
+    e: "Two viable integration paths with different infrastructure implications is a decision, and it has to be made once for all 45+ files rather than rediscovered file by file. Plan mode is the mode that lets that decision be made against the real codebase while edits are still blocked, so a path chosen wrongly costs a conversation instead of a migration.",
   },
   {
     d: "d2",
     sc: "s4",
+    src: "AR2-35",
     q: "While mapping an unfamiliar codebase's module structure, the discovery process generates a lot of verbose intermediate output the engineer never needs to see directly. What keeps this from flooding the main conversation's context?",
     a: [
       "Turning off logging during discovery",
@@ -1805,7 +1857,7 @@ const Q = [
       "Using the Explore subagent to isolate the verbose discovery phase and return a summary",
     ],
     c: 3,
-    e: "The Explore subagent isolates verbose discovery output in its own context and returns a distilled summary to the main conversation. That keeps the main session's context window from being exhausted during a multi-phase exploration task.",
+    e: "Explore exists for the discovery phase specifically: the listings, the excerpts and the dead ends all land somewhere the main conversation never sees, and what comes back is the finding rather than the trail that led to it. That is what keeps a multi-phase exploration from spending the whole context window before the actual work starts. The alternatives either suppress information that is needed, or reshape the codebase to work around a context problem.",
   },
   {
     d: "d1",
@@ -1837,8 +1889,10 @@ const Q = [
   // s5 — Claude Code for Continuous Integration
   {
     d: "d2",
+    official: true,
+    src: "Exam Guide v1.0 §9 Sample 10",
     sc: "s5",
-    q: "Your pipeline script runs claude \"Analyze this pull request for security issues\" but the job hangs indefinitely. Logs indicate Claude Code is waiting for interactive input. What's the correct approach to run Claude Code in an automated pipeline? (official)",
+    q: "Your pipeline script runs claude \"Analyze this pull request for security issues\" but the job hangs indefinitely. Logs indicate Claude Code is waiting for interactive input. What's the correct approach to run Claude Code in an automated pipeline?",
     a: [
       "Add the -p flag: claude -p \"Analyze this pull request for security issues\"",
       "Set the environment variable CLAUDE_HEADLESS=true before running the command",
@@ -1850,8 +1904,10 @@ const Q = [
   },
   {
     d: "d3",
+    official: true,
+    src: "Exam Guide v1.0 §9 Sample 11",
     sc: "s5",
-    q: "Your team wants to reduce API costs for automated analysis. Currently, real-time Claude calls power two workflows: (1) a blocking pre-merge check that must complete before developers can merge, and (2) a technical debt report generated overnight for review the next morning. Your manager proposes switching both to the Message Batches API for its 50% cost savings. How should you evaluate this proposal? (official)",
+    q: "Your team wants to reduce API costs for automated analysis. Currently, real-time Claude calls power two workflows: (1) a blocking pre-merge check that must complete before developers can merge, and (2) a technical debt report generated overnight for review the next morning. Your manager proposes switching both to the Message Batches API for its 50% cost savings. How should you evaluate this proposal?",
     a: [
       "Use batch processing for the technical debt reports only; keep real-time calls for pre-merge checks.",
       "Switch both workflows to batch processing with status polling to check for completion.",
@@ -1863,8 +1919,10 @@ const Q = [
   },
   {
     d: "d3",
+    official: true,
+    src: "Exam Guide v1.0 §9 Sample 12",
     sc: "s5",
-    q: "A pull request modifies 14 files across the stock tracking module. Your single-pass review analyzing all files together produces inconsistent results: detailed feedback for some files but superficial comments for others, obvious bugs missed, and contradictory feedback — flagging a pattern as problematic in one file while approving identical code elsewhere in the same PR. How should you restructure the review? (official)",
+    q: "A pull request modifies 14 files across the stock tracking module. Your single-pass review analyzing all files together produces inconsistent results: detailed feedback for some files but superficial comments for others, obvious bugs missed, and contradictory feedback — flagging a pattern as problematic in one file while approving identical code elsewhere in the same PR. How should you restructure the review?",
     a: [
       "Split into focused passes: analyze each file individually for local issues, then run a separate integration-focused pass examining cross-file data flow.",
       "Require developers to split large PRs into smaller submissions of 3-4 files before the automated review runs.",
@@ -1877,6 +1935,7 @@ const Q = [
   {
     d: "d2",
     sc: "s5",
+    src: "AR2-38, AR2-39",
     q: "You're wiring Claude Code into your CI pipeline so it runs without any interactive input and posts machine-parseable findings as PR comments. Which CLI flags do you need?",
     a: [
       "--resume and --json-schema only",
@@ -1994,3 +2053,42 @@ const Q = [
     e: "When a source document genuinely contains conflicting values, silently picking one hides the discrepancy from anyone downstream. Extracting both values with a conflict_detected flag surfaces the conflict explicitly so a human or downstream rule can resolve it with full information.",
   },
 ];
+
+/* ---------- Exam descriptor ----------
+   Everything cca-trainer.js needs to render this track: the exam facts from the
+   official guide, and every piece of prose that names the exam or its numbers.
+   The prose lives here rather than in cca-trainer.js so that adding a track
+   can't leave an Architect string behind in the Associate view — there is no
+   hardcoded exam text in the renderer to forget. */
+const EXAM_ARCHITECT = {
+  id: "architect",
+  tab: "Architect",
+  credential: "Claude Certified Architect – Foundations",
+  code: "CCAR-F",
+  items: 60, // items on the real exam; exam-sim session length
+  minutes: 120,
+  passPct: 72, // 720 of 100–1000
+  hasScenarios: true,
+  domains: ARCHITECT_DOMAINS,
+  scenarios: ARCHITECT_SCENARIOS,
+  questions: ARCHITECT_Q,
+  copy: {
+    eyebrow:
+      "Claude Certified Architect · Foundations — 1 of 4 exams in Anthropic's Claude Certification Program",
+    lede: "Active recall beats passive reading. Practice scenario questions weighted across the five domains, see where you stand per domain, and build toward a pass.",
+    masteryHelp: `
+        <p>This is your progress dashboard — read-only, it just reflects how you're doing.</p>
+        <p>Each column's <b>width</b> is that domain's weight on the real exam — Agentic counts most (27%), Context least (15%). The coloured <b>fill</b> is your accuracy: the % of the questions you've <i>tried</i> in that domain that you got right. It's not a completion bar — 2 of 2 correct shows as a full 100%, because it measures how well you've done so far, not how much is left.</p>
+        <p>The <b>legend</b> below reads "<i>X% of N tried</i>" per domain — your accuracy and how many you've attempted. "Not tried yet" means you haven't touched that domain.</p>
+        <p><b>Weighted readiness</b> rolls all five domains into one number, each counted by its exam weight — a rough estimate of how exam-ready you are. Domains you haven't practised yet count as 0%, so one domain alone can't get you near 100%; it climbs as you cover more ground AND answer correctly. Aim for <b>72%+</b> (the real pass mark).</p>`,
+    startHelp: `
+        <p>Pick how you want to practise, then press <b>Start</b>.</p>
+        <p><b>Mode · Practice</b> reveals the correct answer and an explanation after every question, so you learn as you go.</p>
+        <p><b>Mode · Exam sim</b> hides the answers until the end, uses 60 questions, and runs a 120-minute countdown — like the real test. You can move freely between items, flag items to come back to, and submit when you're ready; unanswered items score as incorrect, and the exam submits itself when the clock hits zero.</p>
+        <p><b>One deliberate difference:</b> you can pause an exam sim and the clock stops. The real proctored exam has no pause — once it starts, the clock runs. So a paused run isn't a clean rehearsal of exam-day timing, and the summary tells you how many times you paused so you can judge that for yourself.</p>
+        <p><b>Focus</b> (practice only) — "Weighted mix" samples across all five domains by their exam weight, or pick a single domain to drill it on its own. Exam sim always uses the weighted mix.</p>
+        <p>Progress saves automatically, and you can pause mid-session and resume later. The <b>trash icon</b> in the bottom-left corner clears your mastery stats (your paused session and theme stay).</p>`,
+    disclaimer: `
+      This track covers <b>Claude Certified Architect – Foundations</b> (exam code CCAR-F). The trainer covers 2 of the 4 exams in Anthropic's Claude Certification Program — Architect and Associate, switchable with the tabs above — and not the remaining two. The questions are practice questions written to test the concepts in the five domains — not real exam items, which are secret and proctored. The five domains, their weights (27/20/20/18/15), the 60-item/120-minute format and the 720/1000 pass mark are all confirmed against the official Anthropic Exam Guide (v1.0, July 2026). Pricing, rate limits and context sizes change — verify such numbers in the official documentation before the exam. Its guide describes both multiple-choice and multiple-response items. The Claude Code domain now has both; the other four domains here are still single-answer, so a draw weighted across all five is lighter on multiple-response than the real exam. The Associate track has them throughout. One deliberate difference from the real exam: an exam sim here <b>can</b> be paused and the clock stops. The real proctored exam cannot, so the summary reports how many times a run was paused — check that number before you trust a score as a dress rehearsal.`,
+  },
+};
