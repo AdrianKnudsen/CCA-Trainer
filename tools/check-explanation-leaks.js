@@ -43,6 +43,13 @@
    Two Associate hits are known and expected; see TODO.md for why neither can
    be rewritten away. Anything else on that track is a regression.
 
+   A SECOND AXIS runs after the first and is counted separately: a distractor
+   that restates another item's keyed option. That one is worse than an
+   explanation leak — the same proposition ends up keyed correct in one item and
+   wrong in another, so knowing the first item makes the second wrong. Keeping
+   the two counts apart is deliberate: the explanation-pair numbers are recorded
+   baselines and must stay comparable across runs.
+
    Pair with `node tools/row-aliases.js`: two rows that are the same Anthropic
    sentence under different ids are where a leak is most likely to be
    invisible.
@@ -126,6 +133,51 @@ for (const ex of loadTracks()) {
     }
   });
   console.log(`\n${ex.code}: ${hits} pair(s) at or above ${THRESHOLD}`);
+
+  /* Second axis: a DISTRACTOR that restates another item's keyed option.
+
+     Reported separately so the pair count above stays comparable with every
+     previous run — those numbers are recorded baselines in TODO.md.
+
+     This axis was blind until 2026-09-10 and is the worse defect of the two.
+     An explanation leak hands a candidate an answer early. A distractor that
+     restates another item's key means the same proposition is keyed CORRECT in
+     one item and WRONG in another, so a candidate who learned the first item
+     answers the second wrong for having learned it. Measured at the time it
+     was added: CCAR-F 4 pairs, CCAO-F 7, the worst being CCAO-F[33]'s "You
+     phrase the question in neutral, fact-seeking language" against CCAO-F[37]'s
+     key "Rephrase the question in neutral, fact-seeking language" at 83%.
+
+     It matters most while distractors are being rewritten: lengthening a
+     distractor is new text, and new text can collide. */
+  let dhits = 0;
+  items.forEach((mine, mi) => {
+    const keyIdx = Array.isArray(mine.q.c) ? mine.q.c : [mine.q.c];
+    mine.q.a.forEach((opt, j) => {
+      if (keyIdx.includes(j)) return;
+      const dt = words(opt);
+      if (dt.size < 4) return;
+      items.forEach((other, oi) => {
+        if (oi === mi) return;
+        for (const key of other.keys) {
+          const kt = words(key);
+          if (kt.size < 4) continue;
+          let shared = 0;
+          for (const w of kt) if (dt.has(w)) shared++;
+          const cov = shared / kt.size;
+          if (cov >= THRESHOLD) {
+            dhits++;
+            total++;
+            console.log(`\n${mine.at} option ${j} -> ${other.at} key   ${Math.round(cov * 100)}% of that key's content words`);
+            console.log(`  distractor:  ${opt.slice(0, 160)}`);
+            console.log(`  their key:   ${key.slice(0, 160)}`);
+            console.log(`  their item:  ${short(other.q.q)}`);
+          }
+        }
+      });
+    });
+  });
+  console.log(`${ex.code}: ${dhits} distractor(s) restating another item's key at or above ${THRESHOLD}`);
 }
 
 console.log(

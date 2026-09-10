@@ -21,7 +21,19 @@ const vm = require("vm");
 
 const ROOT = path.join(__dirname, "..");
 const RESEARCH = path.join(ROOT, "docs", "research");
-const ROW = /^\|\s*((?:D[1-7]X?|PRE|BR)-\d{2})\s*\|\s*(.+?)\s*\|\s*(https?:\/\/[^\s|]+)\s*\|/;
+const ROW = /^\|\s*((?:D[1-7]X?|PRE|BR)-\d{2}|AR[1-5]-\d{2})\s*\|\s*(.+?)\s*\|\s*(https?:\/\/[^\s|]+)\s*\|/;
+
+/* Row ids cited from an item's `src`. This pattern has to stay in step with
+   ROW above: extending one and not the other is a silent false green, because
+   `cited` comes back empty and every pair looks unshared. */
+const SRC_ID = /\b(?:D[1-7]X?|PRE|BR)-\d{2}|AR[1-5]-\d{2}\b/g;
+
+/* Rows and items are compared within one track only — a candidate sits one
+   exam, so an Architect row and an Associate row are never the same fact for
+   anybody's purposes. */
+const trackOf = (id) => (id.startsWith("AR") ? "CCAR-F" : "CCAO-F");
+const BANK_OF = { "CCAR-F": ["questions-architect.js", "ARCHITECT_Q"], "CCAO-F": ["questions-associate.js", "ASSOCIATE_Q"] };
+const ONLY = process.argv[2] || null;
 
 const rows = [];
 for (const f of fs.readdirSync(RESEARCH).filter((f) => f.endsWith(".md"))) {
@@ -47,32 +59,38 @@ const tok = rows.map((r) => words(r.quote));
 const pairs = [];
 for (let i = 0; i < rows.length; i++)
   for (let j = i + 1; j < rows.length; j++) {
+    if (trackOf(rows[i].id) !== trackOf(rows[j].id)) continue;
     const same = rows[i].url === rows[j].url;
     const s = jac(tok[i], tok[j]);
     if ((same && s >= 0.45) || s >= 0.75) pairs.push([rows[i].id, rows[j].id, s]);
   }
 
-/* Which rows does the bank actually cite, and from which items? */
-const ctx = { out: null };
-vm.createContext(ctx);
-vm.runInContext(
-  fs.readFileSync(path.join(ROOT, "app", "questions-associate.js"), "utf8") + "\nout = ASSOCIATE_Q;",
-  ctx,
-);
-const cited = new Map();
-ctx.out.forEach((q, i) => {
-  (String(q.src || "").match(/\b(?:D[1-7]X?|PRE|BR)-\d{2}\b/g) || []).forEach((id) => {
-    if (!cited.has(id)) cited.set(id, []);
-    cited.get(id).push({ i, d: q.d, q: q.q.slice(0, 62) });
-  });
-});
+/* Which rows does each bank actually cite, and from which items? */
+let totalHits = 0;
+for (const [code, [file, constName]] of Object.entries(BANK_OF)) {
+  if (ONLY && code !== ONLY) continue;
+  const ctx = { out: null };
+  vm.createContext(ctx);
+  vm.runInContext(fs.readFileSync(path.join(ROOT, "app", file), "utf8") + `\nout = ${constName};`, ctx);
 
-const hits = pairs.filter(([a, b]) => cited.has(a) && cited.has(b));
-console.log(`${ctx.out.length} items · ${cited.size} distinct rows cited · ${pairs.length} alias pairs known\n`);
-if (!hits.length) {
-  console.log("No alias pair has both sides cited by the bank.");
-} else {
-  console.log(`${hits.length} alias pair(s) with both sides cited — READ these; a shared supporting row is fine, a shared key is not:\n`);
+  const cited = new Map();
+  ctx.out.forEach((q, i) => {
+    (String(q.src || "").match(SRC_ID) || []).forEach((id) => {
+      if (!cited.has(id)) cited.set(id, []);
+      cited.get(id).push({ i, d: q.d, q: q.q.slice(0, 62) });
+    });
+  });
+
+  const own = pairs.filter(([a]) => trackOf(a) === code);
+  const hits = own.filter(([a, b]) => cited.has(a) && cited.has(b));
+  totalHits += hits.length;
+
+  console.log(`\n${code}: ${ctx.out.length} items · ${cited.size} distinct rows cited · ${own.length} alias pairs known`);
+  if (!hits.length) {
+    console.log(`  No alias pair has both sides cited by this bank.`);
+    continue;
+  }
+  console.log(`  ${hits.length} alias pair(s) with both sides cited — READ these; a shared supporting row is fine, a shared key is not:\n`);
   hits.forEach(([a, b, s]) => {
     console.log(`  ${a} = ${b}  (similarity ${s.toFixed(2)})`);
     [a, b].forEach((id) =>
@@ -81,4 +99,8 @@ if (!hits.length) {
     console.log("");
   });
 }
-process.exit(hits.length ? 1 : 0);
+
+/* Exit non-zero on any hit. CCAO-F carries a recorded baseline of pairs that
+   were read and kept — see TODO.md — so on that track the question is whether
+   the count has moved, not whether it is zero. */
+process.exit(totalHits ? 1 : 0);

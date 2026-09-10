@@ -135,9 +135,24 @@ function checkQuestion(ex, q, i, domainIds, problems, rowIds) {
   }
 
   /* The real exam states how many responses to select, so the bank does too.
-     Both guides put it the same way, and the count has to match the key or the
-     item is unanswerable as written. */
+     The guide itself never writes a literal "Select N" — that string is this
+     app's convention, imported from the Associate track. What the guide states
+     is the format: "Multiple-choice and multiple-response items; each item
+     states how many responses to select" (CCAR-F §3). The count has to match
+     the key or the item is unanswerable as written.
+
+     Shape, too. A multiple-response item gets 5 or 6 options with 2 or 3 keys,
+     which is what every such item on both tracks already does — 12 five-option
+     and 26 six-option on Associate, 4 six-option on Architect. Four options is
+     the shape to refuse: it puts a blind guess at one in six and reads as a
+     single-answer item that grew a second key. This was convention only until
+     now, so locking it in costs nothing and stops the next author inventing a
+     4-option "Select 2". */
   if (Array.isArray(q.c)) {
+    if (q.a.length < 5 || q.a.length > 6)
+      say(`is multiple-response with ${q.a.length} options — the shape is 5 or 6`);
+    if (correct.length < 2 || correct.length > 3)
+      say(`is multiple-response with ${correct.length} keys — the shape is 2 or 3`);
     const stated = /Select (\d+)\./.exec(q.q);
     if (!stated) say(`is multiple-response but its stem never says "Select ${correct.length}."`);
     else if (Number(stated[1]) !== correct.length)
