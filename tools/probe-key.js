@@ -5,6 +5,9 @@
 
        node tools/probe-key.js CCAR-F d2 "a candidate keyed option" ["another"]
 
+   Pass the domain as `all` to scan the whole track, which is what the gate it
+   predicts actually does — see the scope note below.
+
    Answers one question before a question is written: if this string became a
    keyed option, would any explanation or stem already in the bank give it
    away? `check-explanation-leaks.js` answers that after the fact, by scanning
@@ -19,9 +22,23 @@
    claim scores 0% or 88% depending on words nobody thought were load-bearing.
 
    It deliberately reuses the tokenizer, sentence splitter, stop list, key-size
-   floor and coverage metric of check-explanation-leaks.js, so a number here
-   means the same thing as a number there. Keep the two in step: if that file's
+   floor and coverage metric of check-explanation-leaks.js, so a number here is
+   computed the same way as a number there. Keep the two in step: if that file's
    metric changes, this one has to change with it.
+
+   SCOPE, and this used to be wrong. A single domain argument scans that domain
+   only, but `check-explanation-leaks.js` scans the whole track — every item
+   against every other, regardless of domain. Measured 2026-09-10: 3 of CCAR-F's
+   8 pairs at the 0.6 gate are cross-domain, two of them d4 -> d3. So a domain
+   probe can come back clean on a wording the gate will report. Use `all` when
+   two domains are being written from one shared corpus, which is exactly when
+   the cross-domain collisions get generated.
+
+   A candidate can also be probed as a DISTRACTOR rather than a key, with
+   --as-distractor. The question then reverses: not "does an existing sentence
+   give my key away" but "does my new distractor restate an existing keyed
+   option", which would key the same proposition correct in one item and wrong
+   in this one. That axis matters while distractors are being lengthened.
 
    A hit against an `official` item matters more than the percentage suggests.
    Those items reproduce the guide's own published samples, so a collision can
@@ -85,9 +102,12 @@ for (let i = 0; i < argv.length; i++) {
   i--;
 }
 
+const asDistractor = argv.includes("--as-distractor");
+if (asDistractor) argv.splice(argv.indexOf("--as-distractor"), 1);
+
 const [code, domain, ...candidates] = argv;
 if (!code || !domain || !candidates.length) {
-  console.error('Usage: node tools/probe-key.js CCAR-F d2 [--exclude 75,83] "candidate key" ["another"]');
+  console.error('Usage: node tools/probe-key.js CCAR-F d2|all [--exclude 75,83] [--as-distractor] "candidate" ["another"]');
   process.exit(2);
 }
 
@@ -101,17 +121,33 @@ const OFFICIAL_IDX = new Set(
   ex.questions.map((q, i) => (q.official ? i : -1)).filter((i) => i >= 0),
 );
 
-/* Every sentence already in the domain, from both explanations and stems —
-   the same corpus check-explanation-leaks.js scans. */
+const ALL = domain === "all";
+if (!ALL && !ex.domains.some((d) => d.id === domain)) {
+  console.error(`No domain "${domain}" on ${code}. Known: ${ex.domains.map((d) => d.id).join(", ")}, or "all"`);
+  process.exit(2);
+}
+
+/* In key mode the corpus is every sentence of every explanation and stem — the
+   same text check-explanation-leaks.js scans on its first axis. In distractor
+   mode it is every keyed option instead, which is that checker's second axis
+   read from the other side. */
 const pool = [];
 ex.questions.forEach((q, i) => {
-  if (q.d !== domain || exclude.has(i)) return;
-  for (const s of sentences(`${q.e} ${q.q}`)) pool.push({ i, s });
+  if ((!ALL && q.d !== domain) || exclude.has(i)) return;
+  if (asDistractor) {
+    const keys = Array.isArray(q.c) ? q.c : [q.c];
+    for (const k of keys) pool.push({ i, s: q.a[k] });
+  } else {
+    for (const s of sentences(`${q.e} ${q.q}`)) pool.push({ i, s });
+  }
 });
 
 console.log(
-  `\n${code} ${domain}: ${pool.length} existing sentences to test against` +
+  `\n${code} ${ALL ? "all domains" : domain}: ${pool.length} existing ` +
+    (asDistractor ? "keyed option(s)" : "sentence(s)") +
+    " to test against" +
     (exclude.size ? `, excluding [${[...exclude].sort((a, b) => a - b).join("] [")}]` : "") +
+    (ALL ? "" : "  (single domain — the gate scans the whole track; see --help note)") +
     "\n",
 );
 
@@ -128,15 +164,27 @@ for (const cand of candidates) {
   const hits = [];
   for (const { i, s } of pool) {
     const st = words(s);
-    if (st.size < 5) continue;
-    let shared = 0;
-    for (const w of kt) if (st.has(w)) shared++;
-    const cov = shared / kt.size;
-    if (cov >= REPORT_FROM) hits.push({ i, s, cov });
+    /* Key mode measures how much of MY candidate an existing sentence covers,
+       so the denominator is my candidate. Distractor mode asks the opposite —
+       how much of THEIR key my distractor covers — so the denominator is
+       theirs, matching the second axis of check-explanation-leaks.js. */
+    if (asDistractor) {
+      if (st.size < 4) continue;
+      let shared = 0;
+      for (const w of st) if (kt.has(w)) shared++;
+      const cov = shared / st.size;
+      if (cov >= REPORT_FROM) hits.push({ i, s, cov });
+    } else {
+      if (st.size < 5) continue;
+      let shared = 0;
+      for (const w of kt) if (st.has(w)) shared++;
+      const cov = shared / kt.size;
+      if (cov >= REPORT_FROM) hits.push({ i, s, cov });
+    }
   }
   hits.sort((a, b) => b.cov - a.cov);
   if (!hits.length) {
-    console.log(`  ${kt.size} content words · nothing in ${domain} reaches ${REPORT_FROM}. Clean.\n`);
+    console.log(`  ${kt.size} content words · nothing in ${ALL ? "the track" : domain} reaches ${REPORT_FROM}. Clean.\n`);
     continue;
   }
   console.log(`  ${kt.size} content words · ${hits.length} sentence(s) at or above ${REPORT_FROM}:`);

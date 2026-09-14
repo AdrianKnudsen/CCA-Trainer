@@ -85,7 +85,7 @@ from the drafts, so run them after a rebuild rather than before.
 | `cca:theme:v1`           | Light/dark choice            |
 
 Progress is isolated per track, so studying one exam can't disturb the other.
-The bottom-left trash button clears only the active track's progress. Older
+The bottom-right trash button clears only the active track's progress. Older
 single-track keys (`cca:stats:v1`) are migrated to the Architect track on first
 run and deliberately left in place as a backup.
 
