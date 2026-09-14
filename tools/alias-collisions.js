@@ -21,12 +21,18 @@ const vm = require("vm");
 
 const ROOT = path.join(__dirname, "..");
 const RESEARCH = path.join(ROOT, "docs", "research");
-const ROW = /^\|\s*((?:D[1-7]X?|PRE|BR)-\d{2}|AR[1-5]-\d{2})\s*\|\s*(.+?)\s*\|\s*(https?:\/\/[^\s|]+)\s*\|/;
+/* Third column: a URL, or the path of a fetched source file for a row whose
+   authority is the exam guide itself and so has no URL. Must stay in step with
+   row-aliases.js. */
+const ROW = /^\|\s*((?:D[1-7]X?|PRE|BR)-\d{2}|AR[1-5]-\d{2,3})\s*\|\s*(.+?)\s*\|\s*(https?:\/\/[^\s|]+|[^\s|]+\.md)\s*\|/;
 
 /* Row ids cited from an item's `src`. This pattern has to stay in step with
    ROW above: extending one and not the other is a silent false green, because
    `cited` comes back empty and every pair looks unshared. */
-const SRC_ID = /\b(?:D[1-7]X?|PRE|BR)-\d{2}|AR[1-5]-\d{2}\b/g;
+/* Both word boundaries sit outside the alternation on purpose. Now that AR ids
+   are variable-width, a boundary on only one branch lets `AR2-123` match as
+   `AR2-12` and resolve to the wrong row. */
+const SRC_ID = /\b(?:(?:D[1-7]X?|PRE|BR)-\d{2}|AR[1-5]-\d{2,3})\b/g;
 
 /* Rows and items are compared within one track only — a candidate sits one
    exam, so an Architect row and an Associate row are never the same fact for

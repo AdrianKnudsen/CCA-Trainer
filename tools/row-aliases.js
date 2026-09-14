@@ -54,7 +54,13 @@ const fs = require("fs");
 const path = require("path");
 
 const RESEARCH = path.join(__dirname, "..", "docs", "research");
-const ROW = /^\|\s*((?:D[1-7]X?|PRE|BR)-\d{2}|AR[1-5]-\d{2})\s*\|\s*(.+?)\s*\|\s*(https?:\/\/[^\s|]+)\s*\|\s*(.*?)\s*\|/;
+/* The third column is normally a URL, but a row whose authority IS the exam guide
+   has no URL to give — the guide is a PDF, and its text lives in the corpus as a
+   fetched source file. Those rows cite that file's path instead. Requiring a URL
+   here dropped them from the analysis silently, which on the Architect side is
+   most of the guide-only material and therefore the opposite of what this tool is
+   for. */
+const ROW = /^\|\s*((?:D[1-7]X?|PRE|BR)-\d{2}|AR[1-5]-\d{2,3})\s*\|\s*(.+?)\s*\|\s*(https?:\/\/[^\s|]+|[^\s|]+\.md)\s*\|\s*(.*?)\s*\|/;
 const trackOf = (id) => (id.startsWith("AR") ? "CCAR-F" : "CCAO-F");
 
 /* Jaccard floors, unchanged, plus the containment floors. Containment is set

@@ -54,7 +54,7 @@ function knownRowIds() {
   for (const f of fs.readdirSync(RESEARCH_DIR)) {
     if (!f.endsWith(".md")) continue;
     const txt = fs.readFileSync(path.join(RESEARCH_DIR, f), "utf8");
-    for (const m of txt.matchAll(/\b((?:D[1-7]X?|PRE|BR)-\d{2}|AR[1-5]-\d{2})\b/g)) ids.add(m[1]);
+    for (const m of txt.matchAll(/\b((?:D[1-7]X?|PRE|BR)-\d{2}|AR[1-5]-\d{2,3})\b/g)) ids.add(m[1]);
   }
   return ids;
 }
@@ -166,7 +166,7 @@ function checkQuestion(ex, q, i, domainIds, problems, rowIds) {
   if (rowIds && (SOURCED_DOMAINS[ex.code] || []).includes(q.d) && !q.official) {
     if (!q.src) say(`is in sourced domain ${q.d} but has no src`);
     else if (!GUIDE_OBJECTIVE.test(q.src)) {
-      const cited = [...q.src.matchAll(/\b((?:D[1-7]X?|PRE|BR)-\d{2}|AR[1-5]-\d{2})\b/g)].map((m) => m[1]);
+      const cited = [...q.src.matchAll(/\b((?:D[1-7]X?|PRE|BR)-\d{2}|AR[1-5]-\d{2,3})\b/g)].map((m) => m[1]);
       if (!cited.length)
         say(`src "${q.src}" names no research row id, and isn't a guide objective like "Exam Guide v1.0 §6 3.5"`);
       const dangling = cited.filter((id) => !rowIds.has(id));
