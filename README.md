@@ -45,6 +45,21 @@ and an exam descriptor carrying its facts and all of its on-screen prose.
 which returns the active track. Adding a third exam means adding one data file
 and one entry to `EXAMS`.
 
+## How a session is drawn
+
+An **exam sim** on a scenario track picks `scenariosDrawn` of that track's
+scenarios at random — four of six on Architect, the structure the exam guide
+describes — and asks every question the bank holds for each of them. The rest of
+the 60 items are drawn from questions belonging to no scenario, against
+per-domain targets set by the real exam weights and already reduced by whatever
+the scenarios contributed. A scenario's questions stay together as a block, and
+the blocks are shuffled among the standalone questions as units, so a scenario
+is equally likely to sit anywhere in the session.
+
+A **practice round** is 11 questions and does not use the scenario draw — it is
+too short for four complete sets, so scenario questions turn up individually.
+Focusing on a single domain serves that whole domain instead.
+
 ## Checking the question banks
 
 ```
@@ -57,6 +72,12 @@ missing explanation, a dangling scenario reference — and reports how many
 questions each domain holds against its real exam weight, including how many are
 still missing before a weighted 60-item draw can be filled. Exits non-zero if
 anything is wrong.
+
+On a scenario track it also proves the draw is possible at all: it enumerates
+every combination of scenarios the exam sim could pick and checks that none of
+them overfills a domain's target or leaves more slots than that domain has
+scenario-free questions to fill them with. Neither is visible in the per-domain
+table, which counts a domain's whole pool.
 
 It does **not** check whether an answer is factually correct. That is what the
 sourced fact inventories in `docs/research/` and an adversarial review pass are
@@ -99,6 +120,12 @@ included verbatim and marked `official: true`.
 Prices, usage limits and plan features change; those are avoided as
 answer-critical content. Verify any such number in Anthropic's documentation
 before the exam.
+
+An exam sim draws four of the six scenarios as the guide describes, but only 24
+of its 60 items belong to a scenario at all, where the guide calls the exam
+scenario-based throughout. A consequence worth knowing: the guide's twelve sample
+questions sit three apiece in four of the six scenarios, so every exam sim
+carries at least six of them.
 
 One deliberate difference from the real exam: an exam sim **can** be paused and
 the clock stops. The real proctored exam cannot be paused, so the summary reports
