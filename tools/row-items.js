@@ -43,6 +43,38 @@
    bookkeeping was never written, not because the domain is clean. Files with no
    references are named for that reason.
 
+   TWO STRUCTURAL FILTERS, both measured on the full triage of 2026-09-15, where
+   all seventeen pairs were read against the actual bank items. Five turned out to
+   be genuine open duplicates, so a flat list is 5/17 = 29% precise. Both filters
+   together put all five in one bucket of eight: 5/8 = 63%, and neither filter
+   loses a finding.
+
+   ARITY. A row naming exactly two items is the tell. A row naming three or more
+   is citing background: `AR2-30` quotes what plan mode *is* and names four items
+   that each key a different facet of it, which alone manufactured three false
+   pairs. Measured: 3+ item rows produced four pairs and zero findings, while
+   every one of the five real findings came from a two-item row.
+
+   CITES BACK. A row claims to back an item; the item cites its rows in `src`. If
+   the item carries a `src` that does not name the row, the claim is STALE — the
+   item was rewritten and nobody updated the note. This is not a judgement call
+   and it is exactly right in all ten cases it fires on, including the five pairs
+   the redundancy pass had already resolved. An item with no `src` at all cannot
+   contradict the note, so it stays a live candidate.
+
+   So a LIVE candidate is a two-item row whose items both either cite it or carry
+   no `src`. That is the list to act on; everything else is reported beneath it,
+   because a suppressed line is indistinguishable from one the tool cannot see.
+
+   WHAT NEITHER FILTER CAN SEE is a pair a human has already ruled on. `[83]` and
+   `[142]` sit in LIVE and belong there — two rows name exactly that pair and both
+   items cite them — but the ruling was made on 2026-09-14: narrow `[142]`, do not
+   replace it, because its `--output-format json` half is genuinely uncovered by
+   the guide's Sample 10. Rulings live in `TODO.md`, not in the inventory rows, so
+   check them before spending a slot. Three of the eight LIVE pairs on the first
+   run were not duplicates; the triage is written up under
+   `docs/superpowers/findings/`.
+
    Reports only, exit 0. The classification leans on the wording of a human note,
    which is a heuristic, and a heuristic must not be able to block anything.
    ============================================================ */
@@ -88,11 +120,23 @@ function loadTracks() {
    an item official when the bank does not is bookkeeping drift and is exactly
    the kind of thing this file is for. */
 const officialByTrack = new Map();
-for (const ex of loadTracks())
+/* What each item cites, so a row's claim can be checked against it. An item with
+   no `src` maps to null, which means "cannot contradict" rather than "cites
+   nothing" — most of the bank is still unsourced. */
+const srcByTrack = new Map();
+for (const ex of loadTracks()) {
   officialByTrack.set(
     ex.code,
     new Set(ex.questions.map((q, i) => (q.official ? i : -1)).filter((i) => i >= 0))
   );
+  srcByTrack.set(
+    ex.code,
+    ex.questions.map((q) => {
+      const ids = [...String(q.src || "").matchAll(/\b((?:D[1-7]X?|PRE|BR)-\d{2}|AR[1-5]-\d{2,3})\b/g)].map((m) => m[1]);
+      return ids.length ? new Set(ids) : null;
+    })
+  );
+}
 
 const rows = [];
 const filesSeen = new Map();
@@ -142,33 +186,59 @@ for (const r of rows) {
     continue;
   }
   for (const o of off) for (const p of plain) competes.push({ ...r, official: o, slot: p });
+
+  const srcs = srcByTrack.get(r.track) || [];
+  /* An item contradicts the row only if it cites rows and this is not one. */
+  const stale = r.items.filter((i) => srcs[i] && !srcs[i].has(r.id));
+
   for (let a = 0; a < plain.length; a++)
     for (let b = a + 1; b < plain.length; b++) {
       const key = `${r.track} [${plain[a]}] / [${plain[b]}]`;
       if (!corroborated.has(key)) corroborated.set(key, []);
-      corroborated.get(key).push(r);
+      const bucket =
+        r.items.length > 2 ? "background" : stale.length ? "stale" : "live";
+      corroborated.get(key).push({ ...r, bucket, stale });
     }
 }
 
-const pairs = [...corroborated.entries()].sort((x, y) => y[1].length - x[1].length);
-const strong = pairs.filter(([, rs]) => rs.length >= 2);
-const single = pairs.filter(([, rs]) => rs.length === 1);
+/* A pair is as strong as its strongest row: one live row makes it live, however
+   many background rows also mention it. */
+const rank = { live: 0, stale: 1, background: 2 };
+const pairs = [...corroborated.entries()]
+  .map(([key, rs]) => [key, rs, rs.map((r) => rank[r.bucket]).sort()[0]])
+  .sort((x, y) => x[2] - y[2] || y[1].length - x[1].length);
+
+const show = (label, rows) => {
+  console.log(`  ${label}  ${rows.length > 1 ? "" : `${rows[0].id} ${rows[0].file}:${rows[0].line} — ${rows[0].objective}`}`);
+  if (rows.length > 1)
+    rows.forEach((r) => console.log(`                  ${r.id} ${r.file}:${r.line} — ${r.objective}`));
+};
 
 console.log(`\n${rows.length} row(s) name two or more bank items${ONLY ? ` in ${ONLY}` : ""}`);
 
-if (strong.length) {
-  console.log(`\n  ${strong.length} item pair(s) named together by MORE THAN ONE row — the inventory`);
-  console.log(`  says these duplicate, twice and independently:`);
-  for (const [key, rs] of strong) {
-    console.log(`  CORROBORATED  ${key}`);
-    rs.forEach((r) => console.log(`                  ${r.id} ${r.file}:${r.line} — ${r.objective}`));
-  }
+const live = pairs.filter(([, , b]) => b === 0);
+if (live.length) {
+  console.log(`\n  ${live.length} LIVE duplicate candidate(s) — a row naming exactly two items, neither of`);
+  console.log(`  which contradicts it. THIS IS THE LIST TO ACT ON. A pair named by two separate`);
+  console.log(`  rows is the strongest form: the inventory said it twice, independently.`);
+  for (const [key, rs] of live) show(`${rs.length > 1 ? "CORROBORATED" : "CANDIDATE   "}  ${key}`, rs);
 }
 
-if (single.length) {
-  console.log(`\n  ${single.length} item pair(s) named together by one row — duplicate candidates:`);
-  for (const [key, rs] of single)
-    console.log(`  CANDIDATE     ${key}  ${rs[0].id} ${rs[0].file}:${rs[0].line} — ${rs[0].objective}`);
+const stalePairs = pairs.filter(([, , b]) => b === 1);
+if (stalePairs.length) {
+  console.log(`\n  ${stalePairs.length} pair(s) whose row is STALE: an item it claims to back cites different`);
+  console.log(`  rows, so it was rewritten and the note was never updated. Fix the note, and do`);
+  console.log(`  not spend a replacement slot on these without reading the items first:`);
+  for (const [key, rs] of stalePairs)
+    console.log(`  STALE         ${key}  ${rs[0].id} claims [${rs[0].stale.join("], [")}], which cite(s) elsewhere`);
+}
+
+const background = pairs.filter(([, , b]) => b === 2);
+if (background.length) {
+  console.log(`\n  ${background.length} pair(s) from a row naming THREE OR MORE items, which is background the`);
+  console.log(`  items share rather than one fact keyed twice. Measured: zero findings here:`);
+  for (const [key, rs] of background)
+    console.log(`  BACKGROUND    ${key}  ${rs[0].id} names ${rs[0].items.length} items`);
 }
 
 if (competes.length) {
