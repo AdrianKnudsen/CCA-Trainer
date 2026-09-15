@@ -19,7 +19,15 @@
       that matches 14/21/12/16/12/15/10 across 150 questions means knowing,
       repeatedly, which domain is short and by how much.
 
+   3. Report which of the guide's task statements no question reaches — the
+      orphan-objective report. A bank can match every weight and still test
+      the same third of each domain repeatedly, and the per-domain counts
+      above cannot see that.
+
    Exits non-zero if anything structural is wrong, so it can gate a commit.
+   The orphan-objective report is a REPORT: it never fails the build. Coverage
+   is a judgement about what a question tests, and a tool that reads citations
+   can only see what a question cites.
    ============================================================ */
 
 const fs = require("fs");
@@ -44,19 +52,57 @@ const SOURCED_DOMAINS = {
   "CCAR-F": ["d2"],
 };
 
-/* Every research row id defined anywhere in the notes. Two namespaces coexist:
-   Associate's `D1-`…`D7-`, `D7X-`, `PRE-` and `BR-`, and Architect's `AR<n>-`
-   where <n> is the app domain. A `src` naming an id that resolves nowhere means
-   the question cites a source that does not exist. */
-function knownRowIds() {
-  const ids = new Set();
+/* A research row as the notes write it: an id, the verbatim claim, the source
+   URL, then the objective cell. Same shape `row-items.js` reads, because it is
+   one table format across ten files. */
+const ROW_LINE =
+  /^\|\s*((?:D[1-7]X?|PRE|BR)-\d{2}|AR[1-5]-\d{2,3})\s*\|\s*(.+?)\s*\|\s*(https?:\/\/[^\s|]+|[^\s|]+\.md)\s*\|\s*(.*?)\s*\|/;
+
+/* A row id wherever it is referenced — in a `src`, or in prose. One home for
+   it: the same pattern was written out three times in this file, so a new
+   namespace would have had to be remembered in three places. */
+const ROW_ID = /\b((?:D[1-7]X?|PRE|BR)-\d{2}|AR[1-5]-\d{2,3})\b/g;
+
+/* One pass over the research notes, producing the two things that are read from
+   them. Both come from the same files, so reading them twice would be two
+   chances to disagree about what a row is.
+
+   `ids` — every research row id defined anywhere in the notes. Two namespaces
+   coexist: Associate's `D1-`…`D7-`, `D7X-`, `PRE-` and `BR-`, and Architect's
+   `AR<n>-` where <n> is the app domain. A `src` naming an id that resolves
+   nowhere means the question cites a source that does not exist.
+
+   `rows` — for each id, the guide task statement it serves and the bank items
+   its objective cell claims to back. Only the LEADING statement number counts
+   as the row's objective: 7 of 461 Architect rows name a second one, and those
+   mentions are boundary notes rather than claims — `AR3-27` reads "4.2
+   distractor — definitions-and-phrases is 4.1 criteria work, not few-shot",
+   which is the row saying 4.1 is precisely what it does NOT serve. Reading
+   every number would manufacture coverage, and false coverage is the defect the
+   orphan report exists to find. */
+function readResearch() {
   if (!fs.existsSync(RESEARCH_DIR)) return null;
+  const ids = new Set();
+  const rows = new Map();
   for (const f of fs.readdirSync(RESEARCH_DIR)) {
     if (!f.endsWith(".md")) continue;
     const txt = fs.readFileSync(path.join(RESEARCH_DIR, f), "utf8");
-    for (const m of txt.matchAll(/\b((?:D[1-7]X?|PRE|BR)-\d{2}|AR[1-5]-\d{2,3})\b/g)) ids.add(m[1]);
+    for (const m of txt.matchAll(ROW_ID)) ids.add(m[1]);
+    // A "pressure-test" file quotes rows rather than defining them, so a row
+    // read from one would credit the wrong file with an objective it never set.
+    if (f.startsWith("pressure-test")) continue;
+    for (const line of txt.split("\n")) {
+      const m = ROW_LINE.exec(line);
+      if (!m) continue;
+      const objective = m[4] || "";
+      const lead = /^\s*([1-5]\.\d)\b/.exec(objective);
+      rows.set(m[1], {
+        objective: lead ? lead[1] : null,
+        backs: [...new Set([...objective.matchAll(/\[(\d+)\]/g)].map((x) => Number(x[1])))],
+      });
+    }
   }
-  return ids;
+  return { ids, rows };
 }
 
 /* An official item cites the guide sample it reproduces rather than a research
@@ -71,7 +117,7 @@ const GUIDE_CITATION = /^Exam Guide v[\d.]+ §\d+ Sample \d+$/;
    against it, so an item tracing to an objective is sourced — but the citation
    is deliberately conspicuous, because a domain full of them means the
    objectives are thinly covered and the questions rest on one document. */
-const GUIDE_OBJECTIVE = /^Exam Guide v[\d.]+ §\d+ \d+\.\d+$/;
+const GUIDE_OBJECTIVE = /^Exam Guide v[\d.]+ §\d+ (\d+\.\d+)$/;
 
 /* The banks are plain <script> files that declare top-level `const`s for the
    browser. A top-level `const` in a vm script lives in lexical scope rather
@@ -93,7 +139,7 @@ function loadTracks() {
   return ctx.out;
 }
 
-function checkQuestion(ex, q, i, domainIds, problems, rowIds) {
+function checkQuestion(ex, q, i, domainIds, problems, research) {
   const at = `${ex.code}[${i}]`;
   const say = (msg) => problems.push(`${at}: ${msg}`);
 
@@ -163,13 +209,13 @@ function checkQuestion(ex, q, i, domainIds, problems, rowIds) {
 
   /* Sourcing, for the domains that have an inventory. `official` items cite a
      guide sample instead and were checked above. */
-  if (rowIds && (SOURCED_DOMAINS[ex.code] || []).includes(q.d) && !q.official) {
+  if (research && (SOURCED_DOMAINS[ex.code] || []).includes(q.d) && !q.official) {
     if (!q.src) say(`is in sourced domain ${q.d} but has no src`);
     else if (!GUIDE_OBJECTIVE.test(q.src)) {
-      const cited = [...q.src.matchAll(/\b((?:D[1-7]X?|PRE|BR)-\d{2}|AR[1-5]-\d{2,3})\b/g)].map((m) => m[1]);
+      const cited = [...q.src.matchAll(ROW_ID)].map((m) => m[1]);
       if (!cited.length)
         say(`src "${q.src}" names no research row id, and isn't a guide objective like "Exam Guide v1.0 §6 3.5"`);
-      const dangling = cited.filter((id) => !rowIds.has(id));
+      const dangling = cited.filter((id) => !research.ids.has(id));
       if (dangling.length) say(`src cites ${dangling.join(", ")}, which resolve to no research row`);
     }
   }
@@ -254,10 +300,175 @@ function checkScenarioDraw(ex, problems) {
   return { combos: combos.length, present: present.length, tightest };
 }
 
-function report(ex, rowIds) {
+/* ------------------------------------------------------------------
+   The orphan-objective report.
+
+   The weight table above proves a domain has enough questions. It cannot
+   prove they spread across what the guide actually tests: a domain can sit
+   exactly on its weight while every question in it serves two of the six task
+   statements. Matching the blueprint's shape and matching its weights are
+   different properties, and only one of them was being checked.
+
+   ARCHITECT ONLY, and not by preference. The Associate inventories carry no
+   statement numbers at all — 478 rows, none with a leading `X.Y` — so there is
+   no input on that track and the report would print every objective as
+   uncovered. All seven Associate domains are declared in SOURCED_DOMAINS
+   already, so nothing here applies to them.
+   ------------------------------------------------------------------ */
+
+/* The guide and the app number the domains differently, and only `d1` and `d5`
+   agree. Reading "Domain 2's objectives" and filing them under `d2` puts MCP
+   material into Claude Code, which is the one mistake this table exists to
+   stop. The full version is in CLAUDE.md. */
+const GUIDE_DOMAIN = { d1: 1, d2: 3, d3: 4, d4: 2, d5: 5 };
+
+/* How many task statements guide §6 defines per domain: 1.1-1.7, 2.1-2.5,
+   3.1-3.6, 4.1-4.6, 5.1-5.6.
+
+   Declared here rather than derived, for two reasons that between them rule out
+   every alternative. Deriving the list from the research notes would hide the
+   very worst case — a task statement no row has ever mentioned would simply not
+   appear, so the objective with no coverage at all is the one the report would
+   be blind to. And it cannot be read from the guide at runtime: docs/ is
+   gitignored and the PDFs are Anthropic's copyrighted material. Counts are
+   structural facts about the blueprint, the same class as the domain weights
+   already in the banks; the statement titles are guide prose and stay out of a
+   tracked file.
+
+   A hardcoded table can go stale against a future guide revision, so
+   `objectiveCoverage` checks it: a research row citing a statement outside
+   these ranges says the table needs re-reading, not that the row is wrong. */
+const TASK_STATEMENTS = { 1: 7, 2: 5, 3: 6, 4: 6, 5: 6 };
+
+/* Which task statements each app domain's questions reach, counted through two
+   channels that are never summed.
+
+   `src` is the bank's own citation and is authoritative. It is also, today,
+   nearly silent: 25 of 151 Architect items carry a `src` and all 25 are in
+   `d2`. A report on that channel alone would print NONE against almost every
+   statement in the four unsourced domains — not because nothing covers them but
+   because nothing cites anything, which is a different fact and a useless
+   report.
+
+   `inv` is the inventories' own back-references: a row whose objective cell
+   reads "1.4 … Backs `[39]`" is the research saying `[39]` serves 1.4, even
+   though `[39]` carries no `src`. It is the only coverage evidence that exists
+   for those domains today, and it was written by the authors rather than
+   inferred. It is advisory, not authoritative, because it is known stale in
+   seven places — which is a reason to keep it in its own column, not a reason
+   to drop it. */
+function objectiveCoverage(ex, research) {
+  if (!research || ex.code !== "CCAR-F") return null;
+
+  const statementOf = (id) => {
+    const row = research.rows.get(id);
+    return row ? row.objective : null;
+  };
+
+  // Channel 1: what each item cites, whether a row or a guide objective.
+  const viaSrc = new Map(); // "4.3" -> Set of bank indices
+  const stale = new Set();
+  ex.questions.forEach((q, i) => {
+    const src = String(q.src || "");
+    const cited = [];
+    const objective = GUIDE_OBJECTIVE.exec(src);
+    // "Exam Guide v1.0 §6 3.5" is a citation of the objective itself, and for
+    // `d2`'s 3.5 it is the only thing covering it at all.
+    if (objective) cited.push(objective[1]);
+    for (const m of src.matchAll(ROW_ID)) {
+      const st = statementOf(m[1]);
+      if (st) cited.push(st);
+    }
+    cited.forEach((st) => {
+      if (!viaSrc.has(st)) viaSrc.set(st, new Set());
+      viaSrc.get(st).add(i);
+    });
+  });
+
+  // Channel 2: what the inventories say they back.
+  const viaInv = new Map();
+  research.rows.forEach((row) => {
+    if (!row.objective) return;
+    row.backs.forEach((i) => {
+      if (!ex.questions[i]) return; // an index past the bank is a stale note
+      if (!viaInv.has(row.objective)) viaInv.set(row.objective, new Set());
+      viaInv.get(row.objective).add(i);
+    });
+  });
+
+  // Does the declared universe still match what the notes cite?
+  [...viaSrc.keys(), ...viaInv.keys()].forEach((st) => {
+    const [g, n] = st.split(".").map(Number);
+    if (!TASK_STATEMENTS[g] || n < 1 || n > TASK_STATEMENTS[g]) stale.add(st);
+  });
+
+  /* Which items either channel reaches at all. This is the figure that makes a
+     NONE readable: a domain the report can barely see says nothing by printing
+     NONE, and "how many items carry a src" is the wrong proxy for it, because
+     the inventory channel reaches items that carry no src whatsoever. */
+  const reached = new Set();
+  viaSrc.forEach((set) => set.forEach((i) => reached.add(i)));
+  viaInv.forEach((set) => set.forEach((i) => reached.add(i)));
+
+  const domains = ex.domains.map((d) => {
+    const guide = GUIDE_DOMAIN[d.id];
+    const mine = (set) => (set ? [...set].filter((i) => ex.questions[i].d === d.id).length : 0);
+    const items = ex.questions.map((q, i) => ({ q, i })).filter((x) => x.q.d === d.id);
+    return {
+      id: d.id,
+      guide,
+      items: items.length,
+      /* An official sample cites the guide sample it reproduces — "§9 Sample
+         4" — which names no task statement, so `src` can never attribute one
+         to an objective. Only an inventory back-reference can. Counted here so
+         that an unreached official reads as a known limit of the citation
+         format rather than as a gap in the bank. */
+      official: items.filter((x) => x.q.official).length,
+      reached: items.filter((x) => reached.has(x.i)).length,
+      statements: Array.from({ length: TASK_STATEMENTS[guide] || 0 }, (_, k) => {
+        const st = `${guide}.${k + 1}`;
+        return { st, src: mine(viaSrc.get(st)), inv: mine(viaInv.get(st)) };
+      }),
+    };
+  });
+
+  return { domains, stale: [...stale] };
+}
+
+function printObjectiveCoverage(cov) {
+  console.log(
+    "  guide §6 objectives · items reaching each, as src/inv · NONE is a real gap only where" +
+      " nothing is unreached · report only, never fails",
+  );
+  cov.domains.forEach((d) => {
+    if (!d.statements.length) {
+      // A domain with no entry in GUIDE_DOMAIN would otherwise print a blank
+      // line, which reads as full coverage rather than as no data.
+      console.log(`    ${d.id}  no guide domain mapped, so its objectives are not known here`);
+      return;
+    }
+    const cells = d.statements.map((s) =>
+      s.src + s.inv === 0 ? `${s.st} NONE` : `${s.st} ${s.src}/${s.inv}`,
+    );
+    const unreached = d.items - d.reached;
+    console.log(`    ${d.id}  guide Domain ${d.guide}  ${cells.join("  ")}`);
+    console.log(
+      `        ${d.reached} of ${d.items} items reached` +
+        (d.official ? ` · ${d.official} official cite a guide sample, not an objective` : "") +
+        (unreached ? ` · ${unreached} unreached, so a NONE here means UNKNOWN` : " · nothing unreached"),
+    );
+  });
+  if (cov.stale.length)
+    console.log(
+      `    NOTE  ${cov.stale.join(", ")} is outside the declared task-statement ranges,` +
+        ` so TASK_STATEMENTS needs re-reading against the guide`,
+    );
+}
+
+function report(ex, research) {
   const domainIds = new Set(ex.domains.map((d) => d.id));
   const problems = [];
-  ex.questions.forEach((q, i) => checkQuestion(ex, q, i, domainIds, problems, rowIds));
+  ex.questions.forEach((q, i) => checkQuestion(ex, q, i, domainIds, problems, research));
 
   const expected = OFFICIAL_SAMPLES[ex.code];
   const official = ex.questions.filter((q) => q.official).length;
@@ -299,6 +510,9 @@ function report(ex, rowIds) {
         ` · tightest is ${scen.tightest.domain} on ${scen.tightest.combo}, ${scen.tightest.headroom} free slot(s) left`,
     );
 
+  const cov = objectiveCoverage(ex, research);
+  if (cov) printObjectiveCoverage(cov);
+
   if (problems.length) {
     console.log("");
     problems.forEach((p) => console.log(`  PROBLEM  ${p}`));
@@ -307,13 +521,14 @@ function report(ex, rowIds) {
 }
 
 const tracks = loadTracks();
-const rowIds = knownRowIds();
-if (!rowIds)
+const research = readResearch();
+if (!research)
   console.log(
-    `\nNo ${path.relative(path.join(__dirname, ".."), RESEARCH_DIR)}/ directory, so src resolution is skipped.` +
-      `\nThat directory is gitignored; the check runs where the research notes exist.`,
+    `\nNo ${path.relative(path.join(__dirname, ".."), RESEARCH_DIR)}/ directory, so src resolution and` +
+      ` the objective report are skipped.` +
+      `\nThat directory is gitignored; both run where the research notes exist.`,
   );
-const bad = tracks.reduce((a, ex) => a + report(ex, rowIds), 0);
+const bad = tracks.reduce((a, ex) => a + report(ex, research), 0);
 console.log(
   bad ? `\n${bad} structural problem(s) found.\n` : "\nNo structural problems.\n",
 );

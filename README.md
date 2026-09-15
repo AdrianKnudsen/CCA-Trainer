@@ -79,6 +79,15 @@ them overfills a domain's target or leaves more slots than that domain has
 scenario-free questions to fill them with. Neither is visible in the per-domain
 table, which counts a domain's whole pool.
 
+On the Architect track it then prints the objective report: for each of the
+guide's task statements, how many questions reach it. A domain can sit exactly
+on its weight while every question in it tests two of that domain's six task
+statements, and the per-domain table cannot see the difference — matching the
+blueprint's weights and matching its shape are separate properties. Coverage is
+counted through two channels kept apart: what a question cites itself, and what
+the fact inventories say they back. The report never fails the run, because
+what a question tests is a judgement and a tool can only see what it cites.
+
 It does **not** check whether an answer is factually correct. That is what the
 sourced fact inventories in `docs/research/` and an adversarial review pass are
 for.
