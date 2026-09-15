@@ -313,28 +313,50 @@ function scoreSession() {
   return { correct, byDom };
 }
 
-/* Keep questions that share a scenario together: walk the (already shuffled) pool,
-   and whenever we hit the first unplaced question of a scenario, pull all of that
-   scenario's other selected questions in right after it. Standalone questions keep
-   their order. */
-function regroupScenarios(items) {
-  const out = [];
-  const placed = new Array(items.length).fill(false);
-  for (let i = 0; i < items.length; i++) {
-    if (placed[i]) continue;
-    out.push(items[i]);
-    placed[i] = true;
-    const sc = items[i].sc;
-    if (sc) {
-      for (let j = i + 1; j < items.length; j++) {
-        if (!placed[j] && items[j].sc === sc) {
-          out.push(items[j]);
-          placed[j] = true;
-        }
-      }
+/* Shuffle a pool while keeping each scenario's questions together, so a scenario
+   is equally likely to sit anywhere in the session.
+
+   This replaced an earlier pass that shuffled the questions and pulled each
+   scenario's mates in afterwards. That looks equivalent and is not: a block ended
+   up wherever its first-drawn question happened to fall, and the earliest of six
+   uniform positions skews early, so with whole six-question scenarios every one
+   of them landed in the first two thirds — measured, the last ten questions of an
+   exam sim carried a scenario item 0.4% of the time. Shuffling the blocks as
+   units instead has no such bias. */
+function shuffleScenarioBlocks(items) {
+  const blocks = new Map();
+  const units = [];
+  items.forEach((q) => {
+    if (!q.sc) {
+      units.push([q]);
+      return;
     }
-  }
-  return out;
+    if (!blocks.has(q.sc)) {
+      blocks.set(q.sc, []);
+      units.push(blocks.get(q.sc));
+    }
+    blocks.get(q.sc).push(q);
+  });
+  return shuffle(units).flat();
+}
+
+/* The real exam presents a subset of its scenarios (Exam Guide §3 and §5), so an
+   exam sim picks the scenarios first and draws the rest of the session around
+   them. `scenariosDrawn` lives on the track descriptor alongside the other
+   exam-structure numbers, and validate-questions.js proves every possible
+   combination of them fits the per-domain draw targets.
+
+   Scenarios with no questions in the bank are skipped, so the count is that many
+   presented scenarios rather than that many ids. A track missing the number
+   falls back to drawing no sets, which is the old behaviour — better than
+   slicing with `undefined`, which would quietly present all of them. */
+function drawScenarioItems(ex) {
+  if (!ex.hasScenarios || !ex.scenariosDrawn) return [];
+  const present = Object.keys(ex.scenarios).filter((sc) =>
+    ex.questions.some((q) => q.sc === sc),
+  );
+  const chosen = shuffle(present).slice(0, ex.scenariosDrawn);
+  return ex.questions.filter((q) => chosen.includes(q.sc));
 }
 
 function buildSession() {
@@ -343,29 +365,44 @@ function buildSession() {
   if (focus === "weighted") {
     // proportional-ish mix across all domains
     const n = mode === "exam" ? ex.items : 10;
+    // A practice round is far too short to hold four complete scenario sets, so
+    // it keeps drawing scenario items individually like any other question —
+    // each one still renders its own scenario context, so it stands alone.
+    const scenarioItems = mode === "exam" ? drawScenarioItems(ex) : [];
+    const drawn = {};
+    ex.domains.forEach((d) => (drawn[d.id] = 0));
+    scenarioItems.forEach((q) => drawn[q.d]++);
+    // Once four scenarios are chosen the other two are off the table: drawing
+    // one of their items as filler would put five or six partial scenarios back
+    // in the session, which is the whole thing being fixed here.
+    const fillable = scenarioItems.length
+      ? ex.questions.filter((q) => !q.sc)
+      : ex.questions;
     // weighted sampling: roughly follow exam weights
-    const picks = [];
+    const picks = scenarioItems.slice();
     const byDom = {};
     ex.domains.forEach(
-      (d) => (byDom[d.id] = shuffle(ex.questions.filter((q) => q.d === d.id))),
+      (d) => (byDom[d.id] = shuffle(fillable.filter((q) => q.d === d.id))),
     );
+    // The max(1) floor keeps a short practice round touching every domain. It is
+    // applied before the scenarios are debited, so a domain the scenarios have
+    // already filled draws nothing more instead of overshooting `n` by one.
     const targets = ex.domains.map((d) => ({
       id: d.id,
-      t: Math.max(1, Math.round((n * d.weight) / 100)),
+      t: Math.max(1, Math.round((n * d.weight) / 100)) - drawn[d.id],
     }));
     targets.forEach((tt) => {
       for (let i = 0; i < tt.t && byDom[tt.id].length; i++) {
         picks.push(byDom[tt.id].pop());
       }
     });
-    pool = shuffle(picks);
+    pool = shuffleScenarioBlocks(picks);
   } else {
-    pool = shuffle(ex.questions.filter((q) => q.d === focus));
+    pool = shuffleScenarioBlocks(ex.questions.filter((q) => q.d === focus));
   }
   // shuffle the answer options for each picked question (stored in the session,
   // so the order stays stable across pause/resume)
   pool = pool.map(shuffleOptions);
-  pool = regroupScenarios(pool); // questions sharing a scenario appear back-to-back
   session = {
     v: SESSION_V,
     items: pool,

@@ -849,7 +849,7 @@ p {
   }
 }
 
-/* Clear-progress button (bottom-left) — orange with white trash icon, outside #app */
+/* Clear-progress button (bottom-right) — orange with white trash icon, outside #app */
 .clear-btn {
   position: fixed;
   bottom: 1rem;

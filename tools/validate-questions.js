@@ -193,6 +193,67 @@ function checkQuestion(ex, q, i, domainIds, problems, rowIds) {
    an in-house question was flagged by mistake. */
 const OFFICIAL_SAMPLES = { "CCAO-F": 3, "CCAR-F": 12 };
 
+function combinations(arr, k) {
+  if (k === 0) return [[]];
+  return arr.flatMap((v, i) =>
+    combinations(arr.slice(i + 1), k - 1).map((rest) => [v, ...rest]),
+  );
+}
+
+/* An exam sim on a scenario track picks `scenariosDrawn` scenarios first and
+   fills the rest of the session from questions belonging to no scenario, so two
+   things have to hold for EVERY combination the draw could pick, not just for
+   the average one:
+
+     - a combination's questions must not exceed any domain's draw target, or
+       the fill target goes negative, nothing redistributes the overshoot, and
+       the session silently runs one or more items long;
+     - what is left of each target must be fillable from that domain's
+       scenario-free questions, or the domain silently under-fills.
+
+   Neither is visible in the "have / exam draw" table above, which counts a
+   domain's whole pool and knows nothing about scenarios. The margin is thin by
+   nature — a domain's bound questions can approach its target — so this is
+   checked exhaustively rather than argued from totals. */
+function checkScenarioDraw(ex, problems) {
+  if (!ex.hasScenarios) return null;
+  if (!ex.scenariosDrawn) {
+    problems.push(`${ex.code}: hasScenarios is set but scenariosDrawn is missing, so an exam sim draws no scenario sets`);
+    return null;
+  }
+  const present = Object.keys(ex.scenarios || {}).filter((sc) =>
+    ex.questions.some((q) => q.sc === sc),
+  );
+  if (present.length < ex.scenariosDrawn) {
+    problems.push(`${ex.code}: ${present.length} scenarios have questions but an exam sim draws ${ex.scenariosDrawn}`);
+    return null;
+  }
+
+  const target = {}, free = {};
+  ex.domains.forEach((d) => {
+    target[d.id] = Math.max(1, Math.round((ex.items * d.weight) / 100));
+    free[d.id] = ex.questions.filter((q) => q.d === d.id && !q.sc).length;
+  });
+
+  const combos = combinations(present, ex.scenariosDrawn);
+  let tightest = { headroom: Infinity };
+  combos.forEach((combo) => {
+    ex.domains.forEach((d) => {
+      const bound = ex.questions.filter(
+        (q) => q.d === d.id && combo.includes(q.sc),
+      ).length;
+      const headroom = target[d.id] - bound;
+      if (headroom < 0)
+        problems.push(`${ex.code}: scenarios ${combo.join("+")} carry ${bound} ${d.id} questions but the draw target is ${target[d.id]}, so that session runs ${-headroom} item(s) long`);
+      else if (headroom > free[d.id])
+        problems.push(`${ex.code}: scenarios ${combo.join("+")} leave ${headroom} ${d.id} slots to fill but only ${free[d.id]} ${d.id} questions belong to no scenario`);
+      if (headroom < tightest.headroom)
+        tightest = { headroom, domain: d.id, combo: combo.join("+") };
+    });
+  });
+  return { combos: combos.length, present: present.length, tightest };
+}
+
 function report(ex, rowIds) {
   const domainIds = new Set(ex.domains.map((d) => d.id));
   const problems = [];
@@ -226,6 +287,17 @@ function report(ex, rowIds) {
       `  ${d.short.slice(0, 15).padEnd(15)}  ${String(d.weight).padStart(4)}%  ${String(have).padStart(5)}  ${String(draw).padStart(9)}  ${short ? String(short).padStart(8) : "        ·"}`,
     );
   });
+
+  const before = problems.length;
+  const scen = checkScenarioDraw(ex, problems);
+  if (scen)
+    console.log(
+      `  scenarios: ${scen.present} in the bank, ${ex.scenariosDrawn} per exam sim · ` +
+        (problems.length === before
+          ? `all ${scen.combos} combinations fit`
+          : `${problems.length - before} of ${scen.combos} combinations broken`) +
+        ` · tightest is ${scen.tightest.domain} on ${scen.tightest.combo}, ${scen.tightest.headroom} free slot(s) left`,
+    );
 
   if (problems.length) {
     console.log("");
