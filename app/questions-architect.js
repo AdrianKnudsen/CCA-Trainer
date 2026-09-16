@@ -152,16 +152,17 @@ const ARCHITECT_Q = [
     e: "Match the shape of the workload to the API mode. The Batch API trades latency for lower cost — perfect for high volume of independent tasks with no urgency. (Check the current discount in the live docs.)",
   },
   {
-    d: "d1",
-    q: "You're designing for graceful failure when an agent can't complete. What's the best pattern?",
+    d: "d5",
+    src: "AR5-33, AR5-36",
+    q: "Two research subagents fail. One source returns a 503 saying it is temporarily overloaded. The other returns a 403 because no credential for that archive was ever configured. How should the subagents divide the work of handling these?",
     a: [
-      "Let the agent keep retrying until it eventually manages to complete the task",
-      "Let the agent respond as if it succeeded, so the user doesn't notice anything went wrong",
-      "Define an explicit fallback path or escalation, and return a partial result",
-      "Crash the process immediately and restart the whole run from the first step",
+      "Recover from the 503 locally, and send only the 403 up, since no local effort will produce a credential",
+      "Both go straight to the coordinator, so every retry decision on the run is made in one place with a view of the whole budget",
+      "Each keeps retrying its own failure until the run's time budget is gone, so the coordinator is only ever handed finished work",
+      "Retry the 403 locally in case the credential appears, and send the 503 up for the coordinator to decide when to come back to it",
     ],
-    c: 2,
-    e: "A reliable system knows what to do when it doesn't know. An explicit fallback + a structured partial result beats both infinite retrying and hallucinated 'success.'",
+    c: 0,
+    e: "The 503 says the source was busy, and a busy source is the kind of failure a second attempt settles — one the subagent can make without help. The 403 says no credential exists, and nothing the subagent does will produce one. Centralising every retry is defensible engineering and still wrong here, for a reason worth stating: the coordinator knows nothing about the 503 that the subagent does not already know, so the round trip costs a turn to learn what had already resolved itself. Retrying until the budget is gone fails the other way, spending the run on an outcome that cannot change. And handling the two the other way round inverts the only thing that matters: the status says which is which, and a retry is the remedy for a busy source rather than for an absent credential.",
   },
   {
     d: "d1",
@@ -489,30 +490,33 @@ const ARCHITECT_Q = [
   // D5 — Context (5)
   {
     d: "d5",
-    q: "A long conversation starts to degrade because the context window is filling up. Best strategy?",
+    src: "AR5-15, AR5-01",
+    q: "A support agent handles multi-turn billing disputes. To keep the window manageable the team summarizes older turns, and as the conversation grows each summary is folded into the next one. Reviewers now find the agent quoting a disputed amount as \"a few hundred\" and a deadline as \"later this month\", where both were stated exactly in turns that have since been summarized. What fixes this?",
     a: [
-      "Send the entire history unchanged every time, so nothing important is ever lost",
-      "Summarize and compress older turns, keep what's relevant and drop the noise",
-      "Start a brand-new conversation at every message to keep the context as short as possible",
-      "Switch to a smaller model, which handles long conversations more efficiently",
+      "Extract the transactional facts into a persistent case-facts block re-sent with every prompt, outside the summarized history",
+      "Instruct the summarizer to preserve every numerical value and date verbatim inside the summary it writes for each block of older turns",
+      "Give the agent a tool that reads the earlier turns back out of the application's stored transcript, and have it call that tool whenever a figure it needs is missing from the summary",
+      "Raise the threshold that triggers summarization, so more original turns stay in the window before any compression happens",
     ],
-    c: 1,
-    e: "Active context management: keep what matters, compress or drop the rest. Just shoving everything in fills the window with noise and weakens the answers.",
+    c: 0,
+    e: "Guide 5.1 names the risk precisely: amounts, percentages, dates and customer-stated expectations are what condense into vague summaries. Preserving figures inside the summary only defers the loss: a summary is dependable for what was found and not for the exact form it was stated in, and each summary here is folded into the next, so the instruction has to survive every pass. A retrieval tool conditioned on noticing the gap never fires — a vague summary reads as complete, so nothing prompts the call. And raising the threshold buys turns, not durability. A block held outside summarized history and re-sent with each prompt carries the facts verbatim however often the history is re-summarized.",
   },
   {
     d: "d5",
-    q: "Where should the most important instructions be placed in a very long context?",
+    src: "AR5-04, AR5-78",
+    q: "A research subagent has sixty file excerpts to hand to the synthesis agent, which wants them all as evidence and has room for them, and which will read them alongside its own instruction. Several of the excerpts carry the findings that matter most. How should the subagent arrange what it hands over?",
     a: [
-      "In the middle of the biggest chunk of data, where the model reads most carefully",
-      "Clearly up front, ideally reinforced — not buried in the middle of an enormous context",
-      "Placement doesn't matter — the model weights all context exactly equally",
-      "Right at the end, after all the data, since the model remembers what it read last best",
+      "Lead with a summary of the key findings, and put the excerpts themselves after it",
+      "Keep the excerpts in the order they were read, so the synthesis agent can follow how the investigation went and judge for itself which findings mattered",
+      "Note why each excerpt matters in short lines between the excerpts themselves, so the reasoning sits next to what it refers to",
+      "Hand over only the excerpts that carry the key findings and leave the rest out, so nothing unimportant competes for attention",
     ],
-    c: 1,
-    e: "Position matters. Critical instructions belong up front, and can be repeated/reinforced. Buried in a sea of data, they're more likely to be missed.",
+    c: 0,
+    e: "A model processes the beginning and end of a long input reliably and may omit what sits in the middle, so the findings are safest gathered where they cannot be skipped. Reading order is the investigation's structure rather than the reader's, and it scatters the important excerpts wherever they happened to turn up. Annotating each excerpt in place keeps every finding beside its evidence and puts the annotations themselves through the middle of the input, which is the region read least reliably. And dropping the unremarkable excerpts answers a question nobody asked: the synthesis agent wants all sixty as evidence and has room for them, so the problem was never how much to send.",
   },
   {
     d: "d5",
+    src: "AR5-07",
     q: "What does token budgeting mean in a multi-step workflow?",
     a: [
       "Counting the tokens each step consumes so the total can be reported after the run",
@@ -525,15 +529,16 @@ const ARCHITECT_Q = [
   },
   {
     d: "d5",
-    q: "Why cache a stable prefix in the context?",
+    src: "AR5-34",
+    q: "A coordinator assigns one jurisdiction each to five research subagents, and the decomposition is right — every jurisdiction in scope has an agent. Four return findings drawn from the regulators' own published guidance. The fifth's regulator portal was offline for the whole run, so that agent returns findings drawn from a single secondary article. The synthesis step writes all five up in the same voice. What should the synthesis output do instead?",
     a: [
-      "To make answers more creative by reusing earlier phrasings",
-      "To cut repeated cost and latency on content that doesn't change between calls",
-      "To extend the context window beyond the model's usual upper limit",
-      "To avoid tool use by fetching the answer from cache instead of calling",
+      "Annotate each jurisdiction with how well supported it is, and say which rest on gaps left by sources that could not be reached",
+      "Have the coordinator record the offline portal in a methodology note at the end of the report, stated once for the run as a whole without singling out which of the five it bears on",
+      "Order the jurisdictions by how many sources back each one, so a reader can see the strength of support from the sequence",
+      "Leave the fifth jurisdiction out of the review, so nothing published rests on a single secondary source",
     ],
-    c: 1,
-    e: "An unchanged prefix (a long system prompt, fixed documents) sent over and over doesn't need to be paid for again each time — caching cuts both cost and latency.",
+    c: 0,
+    e: "What the review owes its reader is which findings rest on sources that could not be reached, and why — that is the content of a coverage annotation, and without it the fifth jurisdiction is indistinguishable from the four that rest on primary guidance. Ordering by source count conveys relative strength while saying nothing about where the holes are or what caused them. Dropping the jurisdiction destroys the only work done on it and leaves the reader unaware there was a fifth. A methodology note that names the outage but not which jurisdiction it cost leaves every finding unqualified, which is the half of the annotation the guide actually asks for.",
   },
 
   /* ===== Extended set ===== */
@@ -636,16 +641,17 @@ const ARCHITECT_Q = [
     e: "The model has no memory between calls. Any state you need going forward you must carry explicitly in the context for the next call.",
   },
   {
-    d: "d1",
-    q: "A subagent does a big piece of work. What should it return to the orchestrator?",
+    d: "d5",
+    src: "AR5-17, AR5-05",
+    q: "A synthesis agent must keep attributing every statement it writes, and it is doing so correctly today. Its context budget is small, though, and it receives four agents' full outputs — each a reasoning transcript plus every passage that agent read — so it truncates before it reaches the fourth. What should change?",
     a: [
-      "Its entire conversation transcript, so the orchestrator sees everything that happened along the way",
-      "A focused summary or result — not its entire internal context",
-      "Nothing — the orchestrator guesses the result from the task it originally gave",
-      "All intermediate work raw, so nothing is lost on the way back",
+      "Have each agent return key facts with their citations and relevance scores, rather than verbose content and its reasoning chain",
+      "Have the coordinator read each agent's transcript and pull out the key facts and citations itself, handing the synthesis agent a condensed brief rather than the raw outputs",
+      "Move the synthesis step to a model with a larger context window, and leave what the four agents produce exactly as it is",
+      "Run the four agents one after another, so only one of their outputs is in the synthesis agent's window at a time",
     ],
-    c: 1,
-    e: "The point of isolated subagents is lost if they dump their entire context back. Have them return a compressed result so the orchestrator's context stays clean.",
+    c: 0,
+    e: "The constraint is purely how much the synthesis agent must hold at once, and the guide names where to fix it — the agents producing the output, not the consumer of it. Having the coordinator condense the transcripts leaves the verbose form still being produced and moves the reading cost onto another agent. A larger window buys room without improving what fills it, and accuracy and recall degrade as the context grows. Sequencing changes the order the outputs arrive in, not the total. What changes upstream is the shape of the return value: facts and their sources instead of the reasoning that found them.",
   },
 
   // D2 — Claude Code (7 more)
@@ -739,16 +745,17 @@ const ARCHITECT_Q = [
     e: "The model doesn't read your mind. Whatever you leave unspecified, it fills in by its own judgment — be explicit about format, scope and requirements when it matters.",
   },
   {
-    d: "d3",
-    q: "You have a very long document and one question about it. What's a good order in the prompt?",
+    d: "d5",
+    src: "AR5-06, AR5-04",
+    q: "An analyst pastes a 90-page supplier contract into one prompt and asks a single question about its termination clause. Where should the question go relative to the contract?",
     a: [
-      "The question first and the document after, so the model knows what to look for",
-      "The long document first, and the question or instruction at the very end",
-      "Interleave the document and question so they stay tightly connected throughout the prompt",
-      "The order has no bearing on how well the model can answer the question",
+      "After the contract, so the whole document sits above the question in the prompt",
+      "Before the contract, so the model knows what it is looking for while it reads the document through",
+      "Once above the contract and once below it, so the question frames the reading and is also the last thing read",
+      "Split across the contract, with a part of the question after each section it might bear on",
     ],
-    c: 1,
-    e: "With long inputs it pays to put the bulk of the material at the top and the question at the end. That way the model has the instruction fresh in mind as it answers.",
+    c: 0,
+    e: "For a long document and a question about it, Anthropic's guidance is to put the longform data at the top, above the query. The end of a long prompt is read as reliably as the beginning, so nothing is lost by asking last, while leading with the question reads naturally and measures worse. Asking twice is not a safe middle course: the copy above the contract is the placement the guidance avoids, and the model does not read the contract once per copy of the question. Splitting the question up scatters the one thing that should be easy to find into the region of a long input that is least reliably used.",
   },
   {
     d: "d3",
@@ -889,18 +896,20 @@ const ARCHITECT_Q = [
   // D5 — Context (5 more)
   {
     d: "d5",
-    q: "Why does the placement of key info in a long context matter?",
+    src: "AR5-23, AR5-22",
+    q: "A customer opens with \"honestly this is ridiculous\" and describes a duplicate charge — a case the agent can refund on its own. The customer has not asked for a human. What should the agent do?",
     a: [
-      "Models in practice only read the very last sentence before they start answering",
-      "Models latch on less to info in the middle of a long context than at the start and end",
-      "Placement has no real effect — the model weights the entire context exactly equally",
-      "Models read the context back to front, so the most important thing should be at the very bottom",
+      "Acknowledge the frustration and offer to resolve it now, handing off only if the customer then asks for a person",
+      "Resolve the duplicate charge without commenting on the tone, since the refund is what the customer actually needs and the tone will look handled once the money is back",
+      "Escalate now, since the opening line is plainly angry and a person will settle it better than another agent turn would",
+      "Ask the customer whether they would rather deal with a person before doing anything about the charge",
     ],
-    c: 1,
-    e: "'Lost in the middle': what's buried in the middle of a long window is easier to overlook than what's first or last. Put the critical stuff where it gets seen.",
+    c: 0,
+    e: "The condition that decides this is whether the agent can actually settle the case, and here it can — the refund is squarely within what its own policy lets it do, which is what makes offering to resolve the right move rather than handing off. A handoff spends a person on a case that needed none. Fixing the charge without a word is closer, but it answers only half of what the customer said. And offering the handoff unprompted invites one nobody asked for: the agent waits for the customer to actually ask for a person.",
   },
   {
     d: "d5",
+    src: "AR5-05",
     q: "A large context window means you should fill it completely. True or false?",
     a: [
       "True — more context always gives better answers, so fill as much space as you can",
@@ -1435,6 +1444,7 @@ const ARCHITECT_Q = [
   // D5 additions
   {
     d: "d5",
+    src: "AR5-10, AR5-11",
     q: "An order-lookup tool returns more than 40 fields, but only 5 of them matter for handling a return. What should happen to that tool result before it stays in the conversation?",
     a: [
       "Leave it exactly as returned, since tool output should never be altered",
@@ -1447,6 +1457,7 @@ const ARCHITECT_Q = [
   },
   {
     d: "d5",
+    src: "AR5-20",
     q: "A team wants to decide when to escalate a support case by scoring the customer's message sentiment and by asking the model to self-report how confident it is. Why is this a weak design?",
     a: [
       "Sentiment and self-reported confidence are unreliable proxies for how complex the case actually is",
@@ -1459,6 +1470,7 @@ const ARCHITECT_Q = [
   },
   {
     d: "d5",
+    src: "AR5-24",
     q: "A customer asks the agent to match a competitor's lower price. Policy only covers price adjustments when the company's own site drops its price later, and says nothing about competitor pricing. What should the agent do?",
     a: [
       "Escalate, since policy is silent on this specific situation",
@@ -1471,6 +1483,7 @@ const ARCHITECT_Q = [
   },
   {
     d: "d5",
+    src: "AR5-21, AR5-25",
     q: "A customer lookup for 'John Smith' returns three different customer records. What's the right move?",
     a: [
       "Pick the record with the most recent order, since that's usually the right one",
@@ -1483,6 +1496,7 @@ const ARCHITECT_Q = [
   },
   {
     d: "d5",
+    src: "AR5-32, AR5-36",
     q: "A subagent's database query times out on one attempt, and a later, successful attempt returns zero matching rows. How should these two outcomes be reported to the coordinator?",
     a: [
       "Both should be reported the same way, since from the coordinator's side neither attempt produced usable rows",
@@ -1495,16 +1509,16 @@ const ARCHITECT_Q = [
   },
   {
     d: "d5",
-    src: "AR5-14, AR5-09",
-    q: "A long-running support agent uses server-side context editing to keep old tool_result blocks out of the prompt. To stay consistent, the team also deletes those same blocks from the conversation history their own application stores. Transcripts handed to human reviewers now have gaps nobody can reconstruct. What's the mistake?",
+    src: "AR5-44, AR1-52",
+    q: "A planned two-phase codebase review is about to move on. Phase one's conclusions run to file-by-file notes from every agent, and the module boundaries and owners are a small part of that. Phase two will spawn a fresh set of agents to audit error handling inside those modules, and nothing has crashed — this is a scheduled handover. What should happen at the boundary?",
     a: [
-      "Context editing runs server-side before the prompt reaches Claude, so the application's copy was the only complete record",
-      "Server-side editing deletes the blocks from the stored conversation on Anthropic's side, so neither copy survived it",
-      "The application's pruning and the server-side editing ran out of step, so the prompt was rebuilt from a history with holes",
-      "The removed blocks were never summarized first, so the facts they carried left the transcript with nothing in their place",
+      "Summarize phase one's conclusions and put that summary into the phase-two agents' initial prompt, so they begin already knowing the boundaries",
+      "Spawn the phase-two agents right away so they can start scanning, and send phase one's summary through once it has been written up",
+      "Let the phase-two agents rediscover the module boundaries themselves, since a summary written by the mappers would bias what the auditors look at",
+      "Have phase one write its findings to a scratchpad file, and let the phase-two agents open it if they need to",
     ],
     c: 0,
-    e: "Nothing is asked of the client here. The edit happens on Anthropic's side of the call, after the request leaves, and the unmodified history a client holds stays correct — there is no sync step to perform and none wanted. Deleting the blocks locally therefore destroyed the one durable record of what the tools returned, and no summary would have brought back the field values a reviewer needs to read.",
+    e: "Both halves of the guide's rule are about timing — summarize before spawning, and put the summary into the new agents' initial context — and a spawned agent's context starts fresh, so what it begins with is whatever its prompt carried. Spawning first and sending after is not impossible, and that is not why it fails: the auditors scan without the boundaries for as long as the summary is in transit, and they begin the work on the wrong footing rather than the right one. A scratchpad the phase-two agents open if they need to still leaves them beginning from nothing: what is available on request is not what a fresh agent starts with. Rediscovery spends phase two's window redoing phase one.",
   },
   {
     d: "d5",
@@ -1521,6 +1535,7 @@ const ARCHITECT_Q = [
   },
   {
     d: "d5",
+    src: "AR5-43, AR5-48",
     q: "A multi-agent codebase exploration needs to be resumable if the process crashes partway through. What's the right way to design for that?",
     a: [
       "Each agent exports its state to a known location, and the coordinator loads a manifest of that state on resume",
@@ -1639,6 +1654,7 @@ const ARCHITECT_Q = [
   {
     d: "d5",
     sc: "s1",
+    src: "AR5-22",
     q: "A customer explicitly says 'I want to talk to a human, not a bot' before you've even looked into their billing dispute. What should the agent do?",
     a: [
       "Call escalate_to_human immediately, honoring the explicit request without first attempting investigation",
@@ -1727,6 +1743,7 @@ const ARCHITECT_Q = [
   {
     d: "d5",
     sc: "s2",
+    src: "AR5-41, AR5-40",
     q: "Your team uses Claude Code across a multi-day refactor of a large, unfamiliar module. In a long session, it starts giving inconsistent answers and referencing 'typical patterns' instead of the specific classes it found earlier. What helps most?",
     a: [
       "Have Claude maintain a scratchpad file recording key findings, and reference it for subsequent questions",
@@ -1813,12 +1830,13 @@ const ARCHITECT_Q = [
   {
     d: "d5",
     sc: "s3",
+    src: "AR5-63, AR5-67",
     q: "The document-analysis subagent finds a statistic, and by the time it reaches the final report the source has been lost during summarization. How should subagents pass findings to prevent this?",
     a: [
       "Output structured claim-source mappings (source URLs, document names, relevant excerpts) that downstream agents preserve through synthesis",
       "Summarize each finding into plain prose as early as possible, so synthesis receives a compact input and stays inside its context budget",
       "Have the coordinator re-derive each source at report time from the queries it issued, rather than carrying attribution through every step",
-      "Have subagents return key facts with relevance scores instead of excerpts, so the coordinator can rank findings before writing",
+      "Have subagents return the key facts they found instead of the excerpts the facts came from, so the coordinator can rank findings before writing",
     ],
     c: 0,
     e: "Source attribution gets lost when findings are compressed during summarization without preserving which claim came from which source. Subagents need to output structured claim-source mappings that survive being merged all the way through to the final synthesized report.",
@@ -2036,6 +2054,7 @@ const ARCHITECT_Q = [
   {
     d: "d5",
     sc: "s6",
+    src: "AR5-55, AR5-52",
     q: "Your extraction pipeline reports 97% overall accuracy, so you're ready to remove human review entirely. What should you check first?",
     a: [
       "Nothing — at 97% the residual error is small enough that spot checks cost more than the errors they would catch",
@@ -2049,6 +2068,7 @@ const ARCHITECT_Q = [
   {
     d: "d5",
     sc: "s6",
+    src: "AR5-54",
     q: "You want to send only the extractions most likely to be wrong to your limited pool of human reviewers. What should drive that routing decision?",
     a: [
       "Route every extraction the model produced, regardless of confidence",
@@ -2062,6 +2082,7 @@ const ARCHITECT_Q = [
   {
     d: "d5",
     sc: "s6",
+    src: "AR5-69, AR5-65",
     q: "A scanned contract states a payment amount as '$4,500' in the body text but '$5,400' in an addendum table on the last page. Your extraction pipeline must handle this gracefully. What's the right approach?",
     a: [
       "Silently pick the value from the addendum table, since a later addendum normally supersedes the body",
