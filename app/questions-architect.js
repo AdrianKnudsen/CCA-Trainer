@@ -1848,7 +1848,7 @@ const ARCHITECT_Q = [
       "Have subagents return the key facts they found instead of the excerpts the facts came from, so the coordinator can rank findings before writing",
     ],
     c: 0,
-    e: "Source attribution gets lost when findings are compressed during summarization without preserving which claim came from which source. Subagents need to output structured claim-source mappings that survive being merged all the way through to the final synthesized report.",
+    e: "Source attribution gets lost when findings are compressed during summarization without preserving which claim came from which source. Subagents need to output structured claim-source mappings that survive being merged all the way through to the final synthesized report. That mapping has three required fields — the source URL, the document name and the relevant excerpt — so returning the facts without the excerpts they came from strips a field the contract requires, and a later agent is left with nothing to check the statistic against. The defect is the missing field, not the condensing: a shorter return value is fine as long as every part of the mapping survives it.",
   },
 
   // s4 — Developer Productivity with Claude
