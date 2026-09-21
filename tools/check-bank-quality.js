@@ -65,9 +65,9 @@ const OUT_OF_SCOPE = {
   "CCAR-F": [
     [/\bfine[- ]?tun/i, "fine-tuning or training custom models"],
     [/\bOAuth\b|API key rotation/i, "auth protocol details"],
-    [/\brate limit|\bquota|pricing calculat/i, "rate limits, quotas, pricing"],
-    [/token count|tokeniz/i, "token counting or tokenization"],
-    [/computer use|browser automation/i, "computer use"],
+    [/\brate[- ]?limit|\bquota|pricing calculat/i, "rate limits, quotas, pricing"],
+    [/token[- ]?count|tokeniz/i, "token counting or tokenization"],
+    [/computer[- ]?use|browser automation/i, "computer use"],
     [/\bvision\b|image analysis/i, "vision or image analysis"],
     [/server-sent event|\bstreaming API\b/i, "streaming implementation"],
     [/embedding model|vector database/i, "embeddings or vector databases"],
