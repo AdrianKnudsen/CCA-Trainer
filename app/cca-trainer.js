@@ -1,34 +1,14 @@
-/* ============================================================
-   CCA Trainer · logic
-   ------------------------------------------------------------
-   State + storage, rendering and the exam clock.
+/* CCA Trainer — state, rendering and the exam clock.
 
-   The app covers two separate certification exams ("tracks"). Each track owns
-   its domains, question bank and prose, and ships as its own data file
-   (questions-architect.js, questions-associate.js), loaded via <script> tags
-   right before this file (see index.html) — so EXAM_ARCHITECT and
-   EXAM_ASSOCIATE are already defined as globals by the time this file runs.
-   Nothing below reads a track's data directly; it all goes through exam(),
-   which returns the descriptor for whichever track is currently selected.
-   Loaded at the bottom of index.html — i.e. AFTER #app exists in the DOM —
-   so we don't have to wait for any "ready" event.
+   The app covers two certification exams ("tracks"). Each ships as its own data
+   file, loaded by index.html before this one, so EXAM_ARCHITECT and
+   EXAM_ASSOCIATE are already globals here. Nothing reads a track's data
+   directly — it all goes through exam(). */
 
-   The styles live in cca-trainer.css.
-
-   Note: the small anti-flash theme script is still INLINE in the
-   <head> of index.html. It must run before first paint to avoid flashing
-   the wrong theme, and therefore can't wait for this file to download.
-   The rest of the theme logic (the toggle button itself) lives down here.
-   ============================================================ */
-
-/* ---------- State + persistence ---------- */
 /* ---------- Storage keys ----------
-   Stats and a paused session are per track, so studying one exam can neither
-   pollute nor wipe the other's progress. The v1 keys were single-track; the
-   stats are migrated to v2:architect on first run (see migrateV1) and
-   deliberately left in place afterwards as a cheap backup. A v1 paused session
-   is not migrated — migrateV1 says why. */
-const EXAM_KEY = "cca:exam:v1"; // last selected track
+   Per track, so studying one exam can neither pollute nor wipe the other's
+   progress. */
+const EXAM_KEY = "cca:exam:v1";
 function statsKey() {
   return `cca:stats:v2:${examId}`;
 }
@@ -58,10 +38,17 @@ function exam() {
 function examTargetMs() {
   return exam().minutes * 60 * 1000;
 }
-let mem = {}; // last-resort fallback when neither window.storage nor localStorage works
-/* Storage adapter: prefer the host's window.storage; otherwise localStorage so progress
-   and a paused session survive a page refresh in a normal browser; finally in-memory.
-   Values are always JSON strings, matching the window.storage {value} shape. */
+let mem = {}; // last resort when neither window.storage nor localStorage works
+/* Storage adapter: prefer the host's window.storage, then localStorage so progress
+   survives a refresh, then memory. Values are always JSON strings, matching the
+   window.storage {value} shape.
+
+   Every write through here is best-effort on purpose. Storage can be blocked
+   outright — private windows, disabled site data — and a study tool that threw
+   on a blocked write would be unusable for the sake of a statistic. So the
+   catches below, and the bare ones at each save* call site, degrade to the next
+   tier rather than surfacing. A failed READ is different: it falls back to
+   zeroed stats, which is the honest answer. */
 const store = {
   async get(k) {
     if (window.storage) {
@@ -125,7 +112,7 @@ async function migrateV1() {
   const to = "cca:stats:v2:architect";
   try {
     const target = await store.get(to);
-    if (target && target.value) return; // already migrated, or newer data
+    if (target && target.value) return;
     const old = await store.get(V1_STORE_KEY);
     if (old && old.value) await store.set(to, old.value);
   } catch (e) {
@@ -146,7 +133,9 @@ async function loadExamChoice() {
 async function saveExamChoice() {
   try {
     await store.set(EXAM_KEY, examId);
-  } catch (e) {}
+  } catch (e) {
+    /* best-effort write — see the storage adapter */
+  }
 }
 
 async function loadStats() {
@@ -172,7 +161,9 @@ async function loadStats() {
 async function saveStats() {
   try {
     await store.set(statsKey(), JSON.stringify(stats));
-  } catch (e) {}
+  } catch (e) {
+    /* best-effort write — see the storage adapter */
+  }
 }
 async function resetStats() {
   stats = blankStats();
@@ -189,7 +180,9 @@ async function persistSession() {
   }
   try {
     await store.set(sessionKey(), JSON.stringify({ mode, focus, session }));
-  } catch (e) {}
+  } catch (e) {
+    /* best-effort write — see the storage adapter */
+  }
 }
 async function loadSavedSession() {
   savedSession = null;
@@ -212,7 +205,9 @@ async function clearSavedSession() {
   savedSession = null;
   try {
     await store.delete(sessionKey());
-  } catch (e) {}
+  } catch (e) {
+    /* best-effort write — see the storage adapter */
+  }
 }
 
 /* ---------- Session ---------- */
@@ -265,11 +260,10 @@ function shuffleOptions(q) {
 }
 
 /* ---------- Answers ----------
-   A question's correct answer is either a single option index (`c: 2`) or a set
-   of them (`c: [1, 3]`) for a multiple-response item, which the real exam also
-   uses. Array.isArray(q.c) is the whole mechanism, which is why the 151
-   single-answer Architect questions written before multiple-response existed
-   need no edits at all. */
+   A correct answer is either one option index (`c: 2`) or a set of them
+   (`c: [1, 3]`) for a multiple-response item, which the real exam also uses.
+   Array.isArray(q.c) is the whole mechanism, so the single-answer items written
+   before multiple-response existed needed no edits. */
 function correctSet(q) {
   return Array.isArray(q.c) ? q.c : [q.c];
 }
@@ -363,7 +357,9 @@ function buildSession() {
   const ex = exam();
   let pool;
   if (focus === "weighted") {
-    // proportional-ish mix across all domains
+    /* `n` is nominal, not the session length. The max(1) floor and the rounding
+       below push a practice round to 11 items on Architect: 10 × the five
+       weights rounds to 3/2/2/2/2. An exam sim draws ex.items exactly. */
     const n = mode === "exam" ? ex.items : 10;
     // A practice round is far too short to hold four complete scenario sets, so
     // it keeps drawing scenario items individually like any other question —
@@ -378,7 +374,6 @@ function buildSession() {
     const fillable = scenarioItems.length
       ? ex.questions.filter((q) => !q.sc)
       : ex.questions;
-    // weighted sampling: roughly follow exam weights
     const picks = scenarioItems.slice();
     const byDom = {};
     ex.domains.forEach(
@@ -659,13 +654,11 @@ function renderQuestion() {
         ${it.a
           .map((opt, k) => {
             const on = p.sel.includes(k);
-            // Multiple-response options are a selection from a set, so they get
-            // checkbox semantics; a screen reader then announces checked state.
-            // Single-answer options stay plain buttons: one click commits, which
-            // is a command, not a toggle.
-            /* At the cap, an unchecked option can't be checked until something
-               is unchecked, so say so rather than leaving a button that looks
-               live and does nothing. */
+            /* Multiple-response options get checkbox semantics so a screen
+               reader announces checked state; single-answer options stay plain
+               buttons, because one click commits rather than toggles. At the
+               cap an unchecked option is announced disabled, so it doesn't look
+               live while doing nothing. */
             const atCap = multi && !on && !p.revealed && p.sel.length >= pickCount(it);
             const sem = multi
               ? ` role="checkbox" aria-checked="${on}"${atCap ? ' aria-disabled="true"' : ""}`
@@ -693,7 +686,7 @@ function renderQuestion() {
   const reviewBtn = document.getElementById("reviewBtn");
   if (reviewBtn) reviewBtn.addEventListener("click", renderReview);
   document.getElementById("pauseBtn").addEventListener("click", async () => {
-    timerFreeze(); // stop the exam clock; resumes on continue
+    timerFreeze();
     if (examMode) session.pauses = (session.pauses || 0) + 1;
     await persistSession(); // already persisted, but ensure latest
     await loadSavedSession(); // refresh savedSession for the home banner
@@ -1130,7 +1123,7 @@ function setupClearButton() {
         `Reset your ${exam().tab} progress (mastery per domain)? This can't be undone. Your other exam's progress, your paused session and your theme are kept.`,
       )
     ) {
-      resetStats(); // clears stored stats + re-renders
+      resetStats();
     }
   });
 }

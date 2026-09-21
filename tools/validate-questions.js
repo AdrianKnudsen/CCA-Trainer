@@ -1,34 +1,12 @@
-/* ============================================================
-   CCA Trainer · question bank validator
-   ------------------------------------------------------------
-   A development tool, NOT part of the app. index.html never loads this;
-   it runs under Node from anywhere:
+/* Validates both question banks: structural errors that break a question, each
+   track's question counts against its real exam weights, and — the
+   orphan-objective report — which of the guide's task statements no question
+   reaches, which the weight counts alone can't see.
 
-       node tools/validate-questions.js
+   node tools/validate-questions.js
 
-   Two jobs:
-
-   1. Catch structural typos in the banks — an answer index pointing past
-      the end of the options, a domain id that doesn't exist on that track,
-      duplicate option text, a missing explanation. These are invisible when
-      you read a question but they break it, and there are hundreds of
-      questions to get wrong.
-
-   2. Report each track's question distribution against its real exam
-      weights. This is the part that can't be done by eye: writing a bank
-      that matches 14/21/12/16/12/15/10 across 150 questions means knowing,
-      repeatedly, which domain is short and by how much.
-
-   3. Report which of the guide's task statements no question reaches — the
-      orphan-objective report. A bank can match every weight and still test
-      the same third of each domain repeatedly, and the per-domain counts
-      above cannot see that.
-
-   Exits non-zero if anything structural is wrong, so it can gate a commit.
-   The orphan-objective report is a REPORT: it never fails the build. Coverage
-   is a judgement about what a question tests, and a tool that reads citations
-   can only see what a question cites.
-   ============================================================ */
+   Exits non-zero only on structural problems, so it can gate a commit; the
+   weight and orphan-objective reports are informational and never fail it. */
 
 const fs = require("fs");
 const path = require("path");
@@ -141,6 +119,21 @@ function loadTracks() {
   return ctx.out;
 }
 
+/* Two invariants the retired Associate build step used to enforce at generation
+   time. Nothing enforced them once both banks became hand-edited, so they live
+   here now and cover both tracks.
+
+   POSITIONAL: the engine shuffles a question's options on every draw, so any
+   text naming an option by where it sits — "Option B", "the first answer" — is
+   wrong about three quarters of the time. Name the option by its content.
+
+   CROSS_REF: a stem or explanation leaning on a neighbouring question assumes
+   an order the draw does not provide. Every item is asked on its own. */
+const POSITIONAL =
+  /\b(?:option|answer|choice|statement|response)\s+[B-F]\b|\bOption\s+A\b|\bthe\s+(?:first|second|third|fourth|last)\s+(?:option|choice)\b/i;
+const CROSS_REF =
+  /\bas (?:discussed|noted|mentioned|shown|seen) (?:above|earlier|previously)\b|\bthe (?:previous|preceding|next) question\b|\bquestion (?:above|below)\b/i;
+
 function checkQuestion(ex, q, i, domainIds, problems, research) {
   const at = `${ex.code}[${i}]`;
   const say = (msg) => problems.push(`${at}: ${msg}`);
@@ -182,20 +175,14 @@ function checkQuestion(ex, q, i, domainIds, problems, research) {
       say(`is official but its src "${q.src}" isn't a guide citation like "Exam Guide v1.0 §9 Sample 4"`);
   }
 
-  /* The real exam states how many responses to select, so the bank does too.
-     The guide itself never writes a literal "Select N" — that string is this
-     app's convention, imported from the Associate track. What the guide states
-     is the format: "Multiple-choice and multiple-response items; each item
-     states how many responses to select" (CCAR-F §3). The count has to match
-     the key or the item is unanswerable as written.
+  /* The guide states the format ("each item states how many responses to
+     select," CCAR-F §3) but never writes a literal "Select N" — that's an app
+     convention. The stated count has to match the key or the item is
+     unanswerable as written.
 
-     Shape, too. A multiple-response item gets 5 or 6 options with 2 or 3 keys,
-     which is what every such item on both tracks already does — 12 five-option
-     and 26 six-option on Associate, 4 six-option on Architect. Four options is
-     the shape to refuse: it puts a blind guess at one in six and reads as a
-     single-answer item that grew a second key. This was convention only until
-     now, so locking it in costs nothing and stops the next author inventing a
-     4-option "Select 2". */
+     Shape: a multiple-response item gets 5 or 6 options with 2 or 3 keys. Four
+     options is refused — it puts a blind guess at one in six and reads as a
+     single-answer item that grew a second key. */
   if (Array.isArray(q.c)) {
     if (q.a.length < 5 || q.a.length > 6)
       say(`is multiple-response with ${q.a.length} options — the shape is 5 or 6`);
@@ -228,13 +215,20 @@ function checkQuestion(ex, q, i, domainIds, problems, research) {
     if (!ex.scenarios) say(`references scenario "${q.sc}" but this track has none`);
     else if (!ex.scenarios[q.sc]) say(`references unknown scenario "${q.sc}"`);
   }
+
+  for (const [label, text] of [["stem", q.q], ["explanation", q.e]]) {
+    if (typeof text !== "string") continue;
+    const pos = text.match(POSITIONAL);
+    if (pos) say(`${label} names an option by position ("${pos[0]}") — options are shuffled on every draw`);
+    const xref = text.match(CROSS_REF);
+    if (xref) say(`${label} leans on a neighbouring question ("${xref[0]}") — every item is asked on its own`);
+  }
+  q.a.forEach((opt, k) => {
+    const pos = typeof opt === "string" && opt.match(POSITIONAL);
+    if (pos) say(`option ${k} names an option by position ("${pos[0]}")`);
+  });
 }
 
-/* How many questions each domain should hold to keep a weighted draw honest.
-   An exam sim draws `items` by weight, so a domain needs at least its share of
-   that; below it the sampler runs out and silently under-fills the domain. The
-   "short by" column is therefore the minimum still to write, not a target — a
-   bank at exactly the minimum repeats itself completely on a second run. */
 /* How many sample questions each guide publishes, and therefore how many items
    the bank should carry verbatim. CCAO-F §8 has three; CCAR-F §9 has twelve, as
    four scenarios of three. A count that drifts means a sample was dropped, or
@@ -302,21 +296,18 @@ function checkScenarioDraw(ex, problems) {
   return { combos: combos.length, present: present.length, tightest };
 }
 
-/* ------------------------------------------------------------------
-   The orphan-objective report.
+/* ---------- Orphan-objective report ---------- */
 
-   The weight table above proves a domain has enough questions. It cannot
-   prove they spread across what the guide actually tests: a domain can sit
-   exactly on its weight while every question in it serves two of the six task
+/* The weight table above proves a domain has enough questions, not that they
+   spread across what the guide actually tests — a domain can sit exactly on
+   its weight while every question in it serves two of the six task
    statements. Matching the blueprint's shape and matching its weights are
-   different properties, and only one of them was being checked.
+   different properties.
 
-   ARCHITECT ONLY, and not by preference. The Associate inventories carry no
-   statement numbers at all — 478 rows, none with a leading `X.Y` — so there is
-   no input on that track and the report would print every objective as
-   uncovered. All seven Associate domains are declared in SOURCED_DOMAINS
-   already, so nothing here applies to them.
-   ------------------------------------------------------------------ */
+   Architect only, not by preference: the Associate inventories carry no
+   statement numbers at all, so there is no input on that track and the report
+   would print every objective as uncovered. All seven Associate domains are
+   already declared in SOURCED_DOMAINS, so nothing here applies to them. */
 
 /* The guide and the app number the domains differently, and only `d1` and `d5`
    agree. Reading "Domain 2's objectives" and filing them under `d2` puts MCP
@@ -325,32 +316,30 @@ function checkScenarioDraw(ex, problems) {
 const GUIDE_DOMAIN = { d1: 1, d2: 3, d3: 4, d4: 2, d5: 5 };
 
 /* How many task statements guide §6 defines per domain: 1.1-1.7, 2.1-2.5,
-   3.1-3.6, 4.1-4.6, 5.1-5.6.
+   3.1-3.6, 4.1-4.6, 5.1-5.6. Only the counts are tracked here — the statement
+   titles are guide prose and stay out of the repo.
 
-   Declared here rather than derived, for two reasons that between them rule out
-   every alternative. Deriving the list from the research notes would hide the
-   very worst case — a task statement no row has ever mentioned would simply not
-   appear, so the objective with no coverage at all is the one the report would
-   be blind to. And it cannot be read from the guide at runtime: docs/ is
-   gitignored and the PDFs are Anthropic's copyrighted material. Counts are
-   structural facts about the blueprint, the same class as the domain weights
-   already in the banks; the statement titles are guide prose and stay out of a
-   tracked file.
+   Declared here rather than derived from the research notes, because deriving
+   it would hide the worst case: a task statement no row ever mentions would
+   simply not appear, so the objective with zero coverage — exactly what this
+   report exists to find — is exactly what deriving the list would miss. It
+   also can't be read from the guide at runtime: docs/ is gitignored and the
+   PDFs are Anthropic's copyrighted material.
 
-   A hardcoded table can go stale against a future guide revision, so
-   `objectiveCoverage` checks it: a research row citing a statement outside
-   these ranges says the table needs re-reading, not that the row is wrong. */
+   A hardcoded table can go stale against a future guide revision;
+   `objectiveCoverage` checks it below — a row citing a statement outside these
+   ranges means the table needs re-reading, not that the row is wrong. */
 const TASK_STATEMENTS = { 1: 7, 2: 5, 3: 6, 4: 6, 5: 6 };
 
 /* Which task statements each app domain's questions reach, counted through two
    channels that are never summed.
 
-   `src` is the bank's own citation and is authoritative. It is also, today,
-   nearly silent: 25 of 151 Architect items carry a `src` and all 25 are in
-   `d2`. A report on that channel alone would print NONE against almost every
-   statement in the four unsourced domains — not because nothing covers them but
-   because nothing cites anything, which is a different fact and a useless
-   report.
+   `src` is the bank's own citation and is authoritative, but coverage is uneven
+   across domains: `d2` and `d5` are fully cited, while `d1`, `d3` and `d4` are
+   only partly there. A report on that channel alone would print NONE against
+   statements the still-uncited items in those three domains actually reach —
+   not because nothing covers them, but because the citation isn't written yet,
+   which is a different fact and a useless report.
 
    `inv` is the inventories' own back-references: a row whose objective cell
    reads "1.4 … Backs `[39]`" is the research saying `[39]` serves 1.4, even
@@ -492,6 +481,10 @@ function report(ex, research) {
     `  ${total} questions · ${multi} multiple-response (${total ? Math.round((100 * multi) / total) : 0}%) · ${official} official · weights sum ${weightSum}${weightSum === 100 ? "" : "  <-- should be 100"}`,
   );
   console.log("  domain           weight   have   exam draw   short by");
+  /* An exam sim draws `items` by weight, so a domain needs at least its share
+     of that; below it the sampler runs out and silently under-fills the
+     domain. "Short by" is therefore the minimum still to write, not a target —
+     a bank at exactly the minimum repeats itself completely on a second run. */
   ex.domains.forEach((d) => {
     const draw = Math.max(1, Math.round((ex.items * d.weight) / 100));
     const have = counts[d.id];

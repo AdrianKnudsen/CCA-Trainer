@@ -1,59 +1,23 @@
-/* ============================================================
-   CCA Trainer · explanation leak check
-   ------------------------------------------------------------
-   A development tool, NOT part of the app. index.html never loads it.
+/* Finds explanations or stems that give away another item's keyed answer —
+   and, as a second axis, distractors that restate another item's key. Dev
+   tool; the app never loads it.
 
-       node tools/check-explanation-leaks.js [threshold]
+   node tools/check-explanation-leaks.js [threshold]
 
-   Run it AFTER `node docs/drafts/assemble.js`. It reads the built banks in
-   app/, and the Associate bank is generated from the drafts, so running it
-   before a rebuild scans the previous text.
-
-   Why this exists: an explanation is free text, so it can state, as a helpful
-   aside, the exact fact that is another item's keyed answer. A candidate who
-   gets that item wrong then reads the answer to an item they have not met yet.
-   Text-similarity checks on question stems do not see it, and neither does
-   check-drafts.js — the first instance found was a "note this is a different
-   question from…" sentence at the end of an a3 explanation that gave away an
-   a5 key.
-
-   Corpus: app/questions-architect.js and app/questions-associate.js, each
-   track scanned only against itself. It reads the banks rather than
-   docs/drafts/ for two reasons. The five early-block questions exist only in
-   the bank, so a drafts-only scan could never see them — that blind spot hid
-   two real hits. And the Architect bank has no drafts at all, so it was never
-   checked by anything.
-
-   Per-track scanning is also the cross-track partition. Comparing across
-   tracks is meaningless: a candidate sits one exam, so an Architect
-   explanation cannot spoil an Associate item.
-
-   How it works: every sentence of every explanation and stem is compared
-   against every keyed option in every other item of the same track, measuring
-   what share of the key's content words appear in that sentence. Default
-   threshold 0.6. Lower it to ~0.45 to catch paraphrase and read the hits by
-   hand: most short keys collide on generic words (conversation, claude,
-   answer) while testing an unrelated fact, so this is a review aid and not a
-   gate. It exits 0 always, for that reason.
-
-   A hit is reported by bank index, because the bank is the corpus — but for
-   the Associate track the fix belongs in docs/drafts/, since the bank is
-   regenerated. The stem prefix printed with each hit is there to grep for.
+   Each track (app/questions-architect.js, app/questions-associate.js) is
+   scanned only against itself, since a candidate sits one exam and cross-track
+   similarity is meaningless. It compares every sentence of every explanation
+   and stem against every keyed option elsewhere in the same track, by the
+   share of the key's content words the sentence contains (default threshold
+   0.6; lower it to ~0.45 to catch paraphrase, but expect noise from short keys
+   colliding on generic words). Reports only, exits 0 always — read the hits.
 
    Two Associate hits are known and expected; see TODO.md for why neither can
    be rewritten away. Anything else on that track is a regression.
 
-   A SECOND AXIS runs after the first and is counted separately: a distractor
-   that restates another item's keyed option. That one is worse than an
-   explanation leak — the same proposition ends up keyed correct in one item and
-   wrong in another, so knowing the first item makes the second wrong. Keeping
-   the two counts apart is deliberate: the explanation-pair numbers are recorded
-   baselines and must stay comparable across runs.
-
-   Pair with `node tools/row-aliases.js`: two rows that are the same Anthropic
+   Pair with `node tools/row-aliases.js`: two research rows quoting the same
    sentence under different ids are where a leak is most likely to be
-   invisible.
-   ============================================================ */
+   invisible. */
 
 const fs = require("fs");
 const path = require("path");
@@ -134,19 +98,11 @@ for (const ex of loadTracks()) {
   });
   console.log(`\n${ex.code}: ${hits} pair(s) at or above ${THRESHOLD}`);
 
-  /* Second axis: a DISTRACTOR that restates another item's keyed option.
-
-     Reported separately so the pair count above stays comparable with every
-     previous run — those numbers are recorded baselines in TODO.md.
-
-     This axis was blind until 2026-09-10 and is the worse defect of the two.
-     An explanation leak hands a candidate an answer early. A distractor that
-     restates another item's key means the same proposition is keyed CORRECT in
-     one item and WRONG in another, so a candidate who learned the first item
-     answers the second wrong for having learned it. Measured at the time it
-     was added: CCAR-F 4 pairs, CCAO-F 7, the worst being CCAO-F[33]'s "You
-     phrase the question in neutral, fact-seeking language" against CCAO-F[37]'s
-     key "Rephrase the question in neutral, fact-seeking language" at 83%.
+  /* Second axis: a DISTRACTOR that restates another item's keyed option —
+     worse than an explanation leak, since the same proposition ends up keyed
+     CORRECT in one item and WRONG in another, so learning the first item makes
+     the second wrong. Reported separately so the pair count above stays
+     comparable across runs; those numbers are recorded baselines in TODO.md.
 
      It matters most while distractors are being rewritten: lengthening a
      distractor is new text, and new text can collide. */

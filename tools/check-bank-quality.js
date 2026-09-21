@@ -1,35 +1,14 @@
-/* ============================================================
-   CCA Trainer · item-quality checks against the built banks
-   ------------------------------------------------------------
-   A development tool, NOT part of the app. index.html never loads it.
+/* Heuristic quality checks on the built banks: absolutes-only distractor
+   clusters, explanations that restate their own key, short explanations, and
+   vocabulary from the exam guide's out-of-scope list. Dev tool; the app never
+   loads it.
 
-       node tools/check-bank-quality.js [CCAR-F|CCAO-F]
+   node tools/check-bank-quality.js [CCAR-F|CCAO-F]
 
-   Four checks that existed only in `docs/drafts/check-drafts.js`, which reads
-   the Associate drafts. Two consequences that tool cannot escape: the Architect
-   bank has no drafts, so it has never been through any of them; and the five
-   Associate early-block items live only in the bank, so they have not either.
-   That second blind spot is the same one that hid two real explanation leaks.
-
-   Measured on the Architect bank when this was written (2026-09-10): absolutes
-   clusters 0, explanations restating their own key 1, explanations under 40
-   characters 0. So the standing damage is near zero. The reason to have it is
-   regression protection through a rewrite of 457 distractors, where "always"
-   and "never" are the most tempting words to reach for when an option has to
-   get longer, and where a lengthened explanation can start by restating what it
-   is supposed to teach.
-
-   Plus a vocabulary report for the guide's own out-of-scope list. Anthropic
-   publishes plenty that the exam explicitly does not test, and a question can
-   drift onto it while every structural check stays green.
-
-   REPORTS ONLY. It always exits 0, and that is a design decision, not an
-   oversight: every check here is a heuristic over free text. An out-of-scope
-   word can appear legitimately in a stem that rules the topic out, and an
-   absolutes cluster can be the honest shape of a question about absolutes.
-   Wiring any of it to an exit code would start failing builds on correct items,
-   so the numbers are here to be read.
-   ============================================================ */
+   Reports only and always exits 0 — every check here is a heuristic over free
+   text (an out-of-scope word can appear in a stem that rules the topic out, an
+   absolutes cluster can be the honest shape of a question about absolutes), so
+   a hit is something to read, not a build failure. */
 
 const fs = require("fs");
 const path = require("path");
@@ -54,7 +33,7 @@ function loadTracks() {
   return ctx.out;
 }
 
-/* Verbatim from check-drafts.js so the two agree on what an absolute is. */
+/* Kept in step with the Associate bank's own definition of an absolute. */
 const ABSOLUTES =
   /\b(always|never|all of the above|none of the above|every single|no need to|completely eliminat)/i;
 
@@ -77,8 +56,8 @@ const OUT_OF_SCOPE = {
     [/\b(deploy|host)ing (an? )?MCP server|container orchestration/i, "deploying or hosting MCP servers"],
     [/\bAWS\b|\bGCP\b|\bAzure\b/i, "cloud provider configuration"],
   ],
-  /* The Associate list is check-drafts.js's, which the drafts already pass.
-     It runs here only for the five early-block items that tool never sees. */
+  /* The Associate bank is hand-maintained and already clean against this
+     list; it runs here mainly as a regression check on future edits. */
   "CCAO-F": [
     [/\bAgent SDK\b/i, "Agent SDK is Architect/Developer scope"],
     [/\bMCP\b|Model Context Protocol/i, "MCP is Architect/Developer scope"],

@@ -1,54 +1,14 @@
-/* Find research rows that quote the same source sentence under different ids.
-
-   Why this exists: the bank was researched by four agents writing four inventories.
-   Where two of them read the same Anthropic page, they recorded the same sentence
-   under different row ids — BR-05 and D4-69 are one sentence, so are BR-06 and
-   D4-68. Nothing reconciled them, so a question written against BR-05 and a question
-   written against D4-69 are the same question in two domains, and no similarity check
-   on the *questions* reliably catches it because the two writers phrased their stems
+/* Finds research rows that quote the same source sentence under two different
+   row ids — a fact recorded independently by two inventories, which a question
+   written against either row keys in its own domain, and no similarity check
+   on the *questions* reliably catches, since the two stems are usually phrased
    independently.
 
-   It also caused a self-inflicted defect: a fix round was told to write new Domain 1
-   items from the brainstorming rows, without anyone knowing Domain 4 already owned
-   those rows. That round removed sixteen duplicates and created two.
+   node tools/row-aliases.js [CCAR-F|CCAO-F]
 
-   TRACK PARTITION. Associate rows are D1-..D7-, D7X-, PRE- and BR-; Architect
-   rows are AR1-..AR5-. The two are compared only within their own track,
-   because an alias across tracks means nothing — a candidate sits one exam, the
-   same partition `check-explanation-leaks.js` makes for the same reason. That
-   matters more than it looks: both tracks quote the same prompt-engineering
-   pages, so pooling them would manufacture pairs nobody can act on.
-
-   WHY THERE IS A CLUSTER REPORT, and why text similarity alone is not enough.
-   Associate's real aliases are near-verbatim duplicate sentences: D7-07 = D2-47
-   scores 1.00. Architect rows are different in kind — longer (median 203
-   characters against 160) and distinct sentences taken from the SAME page, each
-   describing a different aspect of one mechanism. Two rows that a question
-   author would wrongly treat as two facts therefore score nowhere near a
-   useful floor.
-
-   Measured 2026-09-10, on the 45 AR2 rows. Extending the row regex alone found
-   zero pairs. Adding a containment measure — what share of the shorter row's
-   content words the longer one carries — did not help either: AR2-23 and
-   AR2-24, both about the `paths` frontmatter field on rules and both cited by
-   the bank, score Jaccard 0.31 and containment 0.50, while the top of the whole
-   AR2 distribution is only 0.58. Any floor low enough to catch them returns
-   most of the file.
-
-   So the containment floors stay high enough to mean something, and the
-   Architect work is done by a CLUSTER REPORT instead: rows grouped by source
-   URL and by the guide task statement they serve. AR2-23 through AR2-29 are one
-   such group — one page, one objective, seven rows — and that group is the
-   review unit. It is what the inventory's author actually did, in prose, in the
-   objective column; this only makes it mechanical. A group is not a defect. It
-   is a set of rows a human has to read together before any of them is keyed,
-   because that is where "two ids, one fact" hides.
-
-   Run: node tools/row-aliases.js [CCAR-F|CCAO-F]
-
-   With no argument it reports both tracks. Name a track to see only its pairs
-   and clusters, which is what you want while working one bank.
-*/
+   Compares only within one track — Associate rows against Associate, Architect
+   against Architect — since an alias across tracks means nothing: a candidate
+   sits one exam only. With no argument it reports both. */
 
 const fs = require("fs");
 const path = require("path");
@@ -151,6 +111,11 @@ alias.forEach(({ a, b, s, c, sameUrl, why }) => {
 });
 
 /* Cluster report: rows sharing one source page and one guide task statement.
+   Architect rows tend to be longer, distinct sentences off the same page, each
+   describing a different aspect of one mechanism — a similarity floor loose
+   enough to catch those as aliases also returns most of the file, so grouping
+   by page and objective instead is what the actual review has to happen on.
+
    The objective column is free text, so the key is its leading identifier
    ("3.3", "Domain 4") when it has one and the whole cell otherwise. */
 const objKey = (o) => {

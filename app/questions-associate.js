@@ -1,15 +1,10 @@
-/* ============================================================
-   CCA Trainer · question data · Claude Certified ASSOCIATE – Foundations
-   ------------------------------------------------------------
-   Domains, question bank and exam descriptor for the Associate track
-   (exam code CCAO-F). Same shape and same loading rules as
-   questions-architect.js — see that file's header.
+/* Domains, questions and the exam descriptor for the Associate track (CCAO-F).
+   Same shape and loading rules as questions-architect.js.
 
-   This track has NO scenarios. Its official Exam Guide has no scenario
-   section at all, unlike the Architect guide which names six; inventing
-   some would make the trainer less like the real exam, not more. So
-   `scenarios` is null and no question here carries an `sc` field.
-   ============================================================ */
+   This track has no scenarios on purpose: its Exam Guide has no scenario
+   section, unlike the Architect guide's six, so inventing some would make the
+   trainer less like the real exam. `scenarios` is null and nothing carries an
+   `sc` field. */
 
 /* ---------- Domains (names and weights taken verbatim from the official Anthropic
    "Claude Certified Associate – Foundations" Exam Guide, v1.0, effective July 2026,

@@ -1,41 +1,27 @@
-/* ============================================================
-   CCA Trainer · near-duplicate items in the built banks
-   ------------------------------------------------------------
-   A development tool, NOT part of the app. index.html never loads it.
+/* Finds near-duplicate items in the built banks. Dev tool; the app never
+   loads it.
 
-       node tools/find-duplicate-items.js [CCAR-F [d3]]
+   node tools/find-duplicate-items.js [CCAR-F [d3]]
 
-   Finds the slots. The whole content strategy for the Architect domains is
-   "write new sourced items into the slots freed by duplicates", and until this
-   existed there was no way to find a duplicate in the Architect bank at all:
-   `assemble.js`'s near-duplicate pass loads the Associate drafts only,
-   `validate-questions.js` has no duplicate check, and `check-drafts.js` is
-   Associate-only.
+   The only near-duplicate check that runs over the built banks — it is not
+   the same tool as `alias-collisions.js`, which maps research-row aliases
+   onto the items citing them and so can say nothing about an item with no
+   `src` yet.
 
-   It is NOT the same tool as `alias-collisions.js`, and that distinction is why
-   this file exists. That one maps research-row aliases onto the items citing
-   them, so it can say nothing about an item with no `src` — and 118 of the 151
-   Architect items have none until their domain has been sourced. Using it to
-   find duplicate slots is circular: the slots have to be known before the
-   research, not after.
+   Metric and thresholds: Jaccard over tokens longer than 3 characters,
+   flagged at key >= 0.6, or key >= 0.45 with stem >= 0.4. A shared keyed
+   answer is the signal that matters — two items worded quite differently can
+   teach the identical fact, which is what wastes weighted practice. High stem
+   overlap alone is usually shared scenario vocabulary, which is why stem
+   never flags on its own.
 
-   Metric and thresholds are lifted verbatim from `assemble.js` so the two
-   agree: Jaccard over tokens longer than 3 characters, flagged at
-   key >= 0.6, or key >= 0.45 with stem >= 0.4. A shared keyed answer is the
-   signal that matters — two items worded quite differently can teach the
-   identical fact, which is what wastes weighted practice. High stem overlap
-   alone is usually shared scenario vocabulary, which is why stem never flags
-   on its own.
-
-   Read the caveat in assemble.js too: of the 16 duplicates the Associate review
-   removed, only one was genuine text duplication. The other 15 were
-   domain-ownership mistakes — a real, distinct fact sitting in a domain whose
-   objectives do not cover it — and those score ~0.2 here. No threshold finds
-   them; a human reading the item against the guide's objective list does.
+   A domain-ownership mistake — a real, distinct fact sitting in a domain
+   whose objectives do not cover it — scores low here (~0.2). No threshold
+   finds that; a human reading the item against the guide's objective list
+   does.
 
    Reports only, exit 0. Similarity is a heuristic and a false positive must
-   not be able to block anything.
-   ============================================================ */
+   not be able to block anything. */
 
 const fs = require("fs");
 const path = require("path");

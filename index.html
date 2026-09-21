@@ -12,11 +12,9 @@
       rel="stylesheet"
     />
     <script>
-      /* Kept INLINE on purpose: this must run before first paint so there's no
-     flash of the wrong theme — it can't wait for an external file to download.
-     Saved choice (localStorage) wins; otherwise follow the OS/browser setting.
-     Light is the default (no attribute), so we only set the attribute for dark.
-     The key "cca:theme:v1" must match THEME_KEY in cca-trainer.js. */
+      /* Inline on purpose: it has to run before first paint, so it can't wait
+         for an external file. A saved choice wins, otherwise follow the OS.
+         The key must match THEME_KEY in cca-trainer.js. */
       (function () {
         try {
           var saved = localStorage.getItem("cca:theme:v1");
@@ -32,7 +30,6 @@
         }
       })();
     </script>
-    <!-- Styles: see app/cca-trainer.css -->
     <link rel="stylesheet" href="app/cca-trainer.css" />
   </head>
   <body>
@@ -58,14 +55,12 @@
     </button>
     <div class="wrap" id="app"></div>
 
-    <!-- Question data, one file per exam track. Both are loaded before
-     cca-trainer.js so EXAM_ARCHITECT and EXAM_ASSOCIATE are already defined as
-     globals when it runs. Plain <script> tags rather than fetch(), because the
-     app is opened as a local file and file:// blocks fetch(). -->
+    <!-- One data file per exam track, loaded before cca-trainer.js so its
+         globals exist when that runs. Plain <script> tags rather than fetch(),
+         because the app also opens as a local file and file:// blocks fetch(). -->
     <script src="app/questions-architect.js"></script>
     <script src="app/questions-associate.js"></script>
-    <!-- Logic: see cca-trainer.js. Placed at the bottom so that #app already
-     exists in the DOM when the script runs. -->
+    <!-- Last, so #app already exists in the DOM when it runs. -->
     <script src="app/cca-trainer.js"></script>
   </body>
 </html>

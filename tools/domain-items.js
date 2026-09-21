@@ -1,18 +1,11 @@
-/* Print one domain's questions with their bank index.
+/* Print one domain's questions with their bank index and option lengths.
 
-   Usage:
-     node tools/domain-items.js CCAR-F d3
-     node tools/domain-items.js CCAR-F d3 --full     also print explanations
+   node tools/domain-items.js CCAR-F d3
+   node tools/domain-items.js CCAR-F d3 --full     also print explanations
 
-   The Architect bank is interleaved: its section comments claim contiguous
-   per-domain blocks, but the actual `d` values drift from the headings, so a
-   domain's items are scattered across ~2000 lines. Every phase of the quality
-   work reads one domain at a time, and hunting for them by hand each time is
-   how an item gets missed.
-
-   Option lengths are printed alongside because the working view for the length
-   pass is exactly this list: which item's keyed option is uniquely longest, and
-   by how much. That saves loading the same domain twice through two tools. */
+   The Architect bank is interleaved — its section comments claim contiguous
+   per-domain blocks, but the `d` values drift from the headings — so this is
+   the only way to read a domain whole. */
 
 const fs = require("fs");
 const path = require("path");

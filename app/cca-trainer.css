@@ -1,16 +1,7 @@
-/* ============================================================
-   CCA Trainer · styles
-   ------------------------------------------------------------
-   Everything visual lives here: color variables (light + dark mode),
-   typography, and each component — the mastery bar, the cards, the buttons,
-   the question view and the summary.
+/* CCA Trainer — colour tokens, typography and every component.
 
-   Loaded by index.html via <link>. The logic itself (questions,
-   state, rendering) lives in cca-trainer.js.
-
-   The theme is switched by setting/removing data-theme="dark" on <html>. Because
-   all the colors below are CSS variables, one attribute flips the whole palette.
-   ============================================================ */
+   The theme switches by setting or removing data-theme="dark" on <html>. Every
+   colour below is a variable, so that one attribute flips the whole palette. */
 
 :root {
   --paper: #f2ede3;
@@ -25,20 +16,19 @@
   --d3: #5e7f6e;
   --d4: #4a6b82;
   --d5: #7a5e8a;
-  /* Note: --d1..--d5 above are dead — nothing in the CSS or the JS reads them.
-     Domain colours actually reach the DOM as the `hex` literal on each domain
-     in the data files, because the renderer builds `${d.hex}1f` alpha suffixes
-     and var() can't be concatenated like that. The Associate track's seven
-     colours therefore live only in questions-associate.js; no tokens here. */
+  /* --d1..--d5 are dead. The only references are `color: "var(--d1)"` fields in
+     questions-architect.js, and the renderer never reads `color` — it reads
+     `hex`, because it builds `${d.hex}1f` alpha suffixes and var() can't be
+     concatenated. So the Associate track's seven colours have no tokens here
+     at all, and these five are kept only to avoid touching the data files. */
   --good: #4f7a4a;
   --bad: #b0492f;
   --disp: "Space Grotesk", system-ui, sans-serif;
   --body: "Inter", system-ui, sans-serif;
   --mono: "Space Mono", ui-monospace, monospace;
 }
-/* Dark mode: same variables, warm dark palette. The domain colours come from
-     the data files' `hex` values and are intentionally unchanged — they read
-     fine on both light and dark. */
+/* Dark mode: same variables, warm dark palette. Domain colours are deliberately
+   unchanged — the `hex` values read fine on both themes. */
 :root[data-theme="dark"] {
   --paper: #1a1714;
   --card: #23201b;
@@ -53,8 +43,8 @@
 * {
   box-sizing: border-box;
 }
-/* Fluid root: ~16px on a small laptop, ~18px @1080p, ~20px @1440p, 24px cap @4K.
-     Everything below is in rem, so type AND layout scale together from this one knob. */
+/* Fluid root: ~16px on a small laptop, 24px cap at 4K. Everything below is in
+   rem, so type and layout scale together from this one knob. */
 html {
   font-size: clamp(16px, calc(12px + 0.31vw), 24px);
 }
@@ -72,8 +62,8 @@ body {
   display: flex;
   padding: 1.75rem 1.125rem 4rem;
 }
-/* margin:auto centers the column when it fits, but lets it scroll from the top
-     (never clips) when a card is taller than the viewport. */
+/* margin:auto centres the column when it fits, but lets it scroll from the top
+   rather than clipping when a card is taller than the viewport. */
 .wrap {
   max-width: 45rem;
   width: 100%;

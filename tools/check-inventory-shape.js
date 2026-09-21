@@ -1,19 +1,13 @@
 #!/usr/bin/env node
-/* Structural gate for an Architect research inventory.
+/* Structural gate for an Architect research inventory: proves the file is
+ * shaped like an inventory (fact table, coverage table, permutation header),
+ * not that its quotes are real — that's `check-research-quotes.js`'s job.
  *
- * `check-research-quotes.js` proves the quotes are real; this proves the file is
- * shaped like an inventory at all. It exists because the four Architect
- * inventories are generated per domain rather than written by one hand, so the
- * failure mode is a file that reads fine and is missing the section a later
- * phase depends on — the coverage table is what proves every task statement has
- * a row, and the permutation header is what stops guide Domain 2 material being
- * filed under app `d2`.
+ *   node tools/check-inventory-shape.js [file...]   defaults to all ccar-*.md
  *
- *   node tools/check-inventory-shape.js                      all ccar-*.md
- *   node tools/check-inventory-shape.js docs/research/x.md    one file
- *
- * Exits 1 on a defect, 2 if a named file is missing. Reports only on the parts
- * a machine can judge; the prose is a human's job.
+ * The permutation-header check is the one that matters most: it's what stops
+ * guide Domain 2 material being filed under app `d2`. Exits 1 on a defect, 2
+ * if a named file is missing.
  */
 const fs = require("fs");
 const path = require("path");

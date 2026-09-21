@@ -1,50 +1,12 @@
-/* ============================================================
-   CCA Trainer · candidate key probe
-   ------------------------------------------------------------
-   A development tool, NOT part of the app. index.html never loads it.
+/* Checks whether a candidate keyed option or distractor would already be given away
+   by text already in the bank, before the question is written — what
+   check-explanation-leaks.js checks after the fact, by scanning what is committed.
 
-       node tools/probe-key.js CCAR-F d2 "a candidate keyed option" ["another"]
+   node tools/probe-key.js CCAR-F d2|all [--exclude 75,83] [--as-distractor] "candidate" ["another"]
 
-   Pass the domain as `all` to scan the whole track, which is what the gate it
-   predicts actually does — see the scope note below.
-
-   Answers one question before a question is written: if this string became a
-   keyed option, would any explanation or stem already in the bank give it
-   away? `check-explanation-leaks.js` answers that after the fact, by scanning
-   what is committed. This answers it while the wording is still a draft.
-
-   Why it exists: during review of the d2 pilot, three separate predictions
-   about which conversions would leak were argued from the metric's shape
-   rather than measured. One was reported as a 70% collision and turned out to
-   depend entirely on wording — the terse phrasing an author would actually
-   write fell under the checker's own floor and could not collide at all.
-   Reasoning about `shared / kt.size` in your head does not work; the same
-   claim scores 0% or 88% depending on words nobody thought were load-bearing.
-
-   It deliberately reuses the tokenizer, sentence splitter, stop list, key-size
-   floor and coverage metric of check-explanation-leaks.js, so a number here is
-   computed the same way as a number there. Keep the two in step: if that file's
-   metric changes, this one has to change with it.
-
-   SCOPE, and this used to be wrong. A single domain argument scans that domain
-   only, but `check-explanation-leaks.js` scans the whole track — every item
-   against every other, regardless of domain. Measured 2026-09-10: 3 of CCAR-F's
-   8 pairs at the 0.6 gate are cross-domain, two of them d4 -> d3. So a domain
-   probe can come back clean on a wording the gate will report. Use `all` when
-   two domains are being written from one shared corpus, which is exactly when
-   the cross-domain collisions get generated.
-
-   A candidate can also be probed as a DISTRACTOR rather than a key, with
-   --as-distractor. The question then reverses: not "does an existing sentence
-   give my key away" but "does my new distractor restate an existing keyed
-   option", which would key the same proposition correct in one item and wrong
-   in this one. That axis matters while distractors are being lengthened.
-
-   A hit against an `official` item matters more than the percentage suggests.
-   Those items reproduce the guide's own published samples, so a collision can
-   only ever be resolved from the other side — reword the candidate, because
-   the guide's stem, options and key cannot move.
-   ============================================================ */
+   Pass `all` rather than one domain: the leak gate this predicts scans the whole
+   track, so a single-domain probe can come back clean on a wording the gate will
+   still report. */
 
 const fs = require("fs");
 const path = require("path");
@@ -102,6 +64,9 @@ for (let i = 0; i < argv.length; i++) {
   i--;
 }
 
+/* Reverses the question: not "does an existing sentence give my key away" but
+   "does my new distractor restate an existing keyed option" — matters while a
+   distractor is being lengthened. */
 const asDistractor = argv.includes("--as-distractor");
 if (asDistractor) argv.splice(argv.indexOf("--as-distractor"), 1);
 
@@ -117,6 +82,9 @@ if (!ex) {
   process.exit(2);
 }
 
+/* A hit against an official item matters more than the percentage suggests: the
+   guide's stem, options and key can't move, so a collision can only be resolved
+   by rewording the candidate. */
 const OFFICIAL_IDX = new Set(
   ex.questions.map((q, i) => (q.official ? i : -1)).filter((i) => i >= 0),
 );
