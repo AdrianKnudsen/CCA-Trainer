@@ -1,19 +1,13 @@
-/* Cross-check the assembled bank against the research row-alias map.
+/* Cross-check the assembled bank against `row-aliases.js`'s map of research rows
+   that quote the same source sentence under different ids: does the bank cite
+   BOTH sides of such a pair?
 
-   `row-aliases.js` finds research rows that quote the same Anthropic sentence under
-   different ids. This asks the follow-up: are BOTH sides of an alias pair cited by the
-   bank? That is the defect that survived round 1 thirteen times, because a similarity
-   check on the questions cannot see it — the writers phrase their stems independently,
-   so the texts do not resemble each other at all.
+   node tools/alias-collisions.js
 
-   What this does NOT tell you: whether the shared row is the row that carries each
-   item's KEY. A `src` lists supporting rows too, and two items legitimately leaning on
-   the same background fact is normal and fine. So every pair below is a candidate for
-   reading, not a finding. Expect roughly half to be legitimate on inspection; the ones
-   to act on are where the aliased sentence is what makes each key correct.
-
-   Run: node tools/alias-collisions.js
-*/
+   What this does NOT tell you: whether the shared row is the row that carries
+   each item's KEY. A `src` lists supporting rows too, so a shared row can just
+   be a shared background fact — every pair below is a candidate for reading,
+   not a finding. */
 
 const fs = require("fs");
 const path = require("path");

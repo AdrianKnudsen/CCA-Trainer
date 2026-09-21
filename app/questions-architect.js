@@ -1,18 +1,10 @@
-/* ============================================================
-   CCA Trainer · question data · Claude Certified ARCHITECT – Foundations
-   ------------------------------------------------------------
-   Domains, scenarios, the question bank and the exam descriptor for the
-   Architect track (exam code CCAR-F). Loaded via a plain <script> tag
-   (before cca-trainer.js) rather than fetch() — the app is opened as a
-   local file, and fetch() of a local JSON file is blocked by the
-   browser's file:// CORS policy.
+/* Domains, scenarios, questions and the exam descriptor for the Architect
+   track (CCAR-F). Edited in place — there is no build step.
 
-   Everything here is namespaced ARCHITECT_* and gathered into the
-   EXAM_ARCHITECT descriptor at the bottom of the file, because a second
-   track (questions-associate.js) defines the same shapes for its own
-   exam. cca-trainer.js never reads these names directly — it goes
-   through the active track's descriptor.
-   ============================================================ */
+   Every name is prefixed ARCHITECT_* because questions-associate.js declares
+   the same shapes in the same global scope, and two top-level `const`s of one
+   name is a SyntaxError. Everything gathers into EXAM_ARCHITECT at the bottom;
+   cca-trainer.js reads only that. */
 
 /* ---------- Domains (weights confirmed against the official Anthropic "Claude Certified
    Architect – Foundations" Exam Guide, v1.0, effective July 2026, exam code CCAR-F) ---------- */

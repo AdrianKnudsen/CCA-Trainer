@@ -1,84 +1,25 @@
-/* ============================================================
-   CCA Trainer · research quote verifier
-   ------------------------------------------------------------
-   A development tool, NOT part of the app. index.html never loads it.
+/* Verifies every quoted fragment in a research inventory appears verbatim on
+   the source page the row credits. Dev tool; the app never loads it.
 
-       node tools/check-research-quotes.js [inventory.md] [sources-dir]
+   node tools/check-research-quotes.js [inventory.md] [sources-dir]
 
-   Why this exists: a fabricated "verbatim" quote is the one defect the whole
-   sourcing method cannot survive, and it is invisible on reading — the row
-   looks exactly like a real one. One row in the CCAR-F d2 inventory was
-   written from the shape of a CLI table rather than from the page, and only a
-   mechanical check caught it.
+   Why it exists: a fabricated "verbatim" quote is the one defect the sourcing
+   method cannot survive, and it is invisible on reading — the row looks exactly
+   like a real one. One row here was written from the shape of a CLI table
+   rather than from the page, and only a mechanical check caught it.
 
-   Defaults to the CCAR-F d2 inventory and docs/research/sources/, which holds
-   the source pages as raw markdown. Refresh a page with:
+   Defaults to the CCAR-F d2 inventory and docs/research/sources/, the fetched
+   source pages as raw markdown. Refresh one with:
 
        curl -sL -o docs/research/sources/memory.md \
          https://docs.claude.com/en/docs/claude-code/memory.md
 
-   Note the .md suffix: the HTML URL returns the single-page-app shell, and
-   summarising the page through a model defeats the purpose.
-
-   AND CHECK WHAT CAME BACK. Measured 2026-09-10: a `.md` URL whose path does
-   not exist returns HTTP 200 with the app shell, not an error — 363 KB of HTML
-   for `claude-code/sdk/sdk-overview.md`, for one. So the status code proves
-   nothing, and a careless fetch leaves an HTML file sitting in sources/ that no
-   quote can ever match. This tool refuses such a file by name rather than
-   letting it fail every row that cites it.
-
-   TWO HEURISTICS THAT LOOK RIGHT AND ARE NOT, both established by measurement:
-
-   Requiring YAML frontmatter would reject the real corpus. Most pages on
-   docs.claude.com begin "> ## Documentation Index" rather than a "---" block.
-
-   Rejecting a file that contains "<script" would also reject a real page.
-   `agent-sdk--typescript.md` is 357 KB of genuine reference markdown that
-   carries one MDX component tag, <script src="..." defer />, on line 9. A
-   drafted version of this check had that rule and would have deleted the page
-   and then failed every row citing it. So the discriminator is STRUCTURAL: the
-   shell announces itself with a doctype or an <html> element at the very start,
-   and it carries no markdown headings at all. An isolated tag inside prose
-   proves nothing either way.
-
-   FILE NAMING. New pages are saved as a path slug — the last two meaningful
-   path segments joined by a double dash, `claude-code--memory.md` — because the
-   last segment alone collides as soon as two pages share it, and `overview.md`
-   and `mcp.md` both exist under several paths. The ten pages fetched for the d2
-   inventory predate that rule and keep their single-segment names; both forms
-   are accepted.
-
-   Two parts of that are easy to get wrong, and getting them wrong is what made
-   this gate useless for a while — measured 2026-09-15, only 45 of the 83 URLs
-   cited across the four new inventories resolved:
-
-   `docs` and `en` are dropped from the path before the last two segments are
-   taken. They carry no information, they are in every Anthropic docs URL, and
-   they appear in BOTH orders — `/docs/en/` on platform.claude.com, `/en/docs/`
-   on docs.claude.com — so position cannot be relied on.
-
-   The host contributes a prefix, and that prefix is a FOSSIL of the URL the page
-   was fetched from rather than a transform of the host the row cites now.
-   `code.claude.com/docs/en/agent-teams` is on disk as
-   `claude-code--agent-teams.md`, because the page lived at
-   `docs.claude.com/en/docs/claude-code/agent-teams` when it was fetched. So the
-   mapping is a table, not a rule, and it cannot be complete: three rows cite a
-   page that moved or was never fetched, and those are reported rather than
-   papered over.
-
-   A row whose authority IS the exam guide has no URL at all. The guide is a PDF
-   whose text lives in the corpus as a `pdftotext` extract, so such a row cites
-   that file's path, and it gets a first-class match against that file. Before
-   this, 169 guide rows fell through to a corpus-wide search and were reported as
-   if their provenance were unknown.
-
-   Both sides are normalised before comparing — markdown links to their text,
-   emphasis and code ticks removed, smart quotes and dashes folded — because
-   an inventory row legitimately reformats what it quotes. A fragment the tool
-   cannot check is reported rather than passed silently.
-
-   Exits non-zero if any fragment is missing, so it can gate a commit.
-   ============================================================ */
+   Use the .md suffix, not the HTML page, and check what actually came back: a
+   `.md` URL for a path that doesn't exist can still return HTTP 200 with the
+   single-page-app shell rather than an error, so the status code alone proves
+   nothing. This tool refuses such a file by name (see `isShell` below) rather
+   than letting it fail every row that cites it. Exits non-zero if any
+   fragment is missing, so it can gate a commit. */
 
 const fs = require("fs");
 const path = require("path");
@@ -87,6 +28,8 @@ const ROOT = path.join(__dirname, "..");
 const INV = process.argv[2] || path.join(ROOT, "docs/research/ccar-d2-claude-code.md");
 const SRC = process.argv[3] || path.join(ROOT, "docs/research/sources");
 
+/* Both sides are normalised before comparing, because an inventory row
+   legitimately reformats what it quotes. */
 const canon = (s) =>
   s
     .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1") // markdown link -> its text
@@ -113,8 +56,12 @@ const rawFiles = fs.readdirSync(SRC).filter((f) => f.endsWith(".md"));
    missing one: it makes every row citing that page fail for a reason that looks
    like a fabricated quote. Name it instead.
 
-   Two structural signals, both required to be absent for the file to pass as
-   markdown, and deliberately NOT a tag scan — see the header. */
+   Detection is structural, not a tag scan: requiring YAML frontmatter would
+   reject most real docs.claude.com pages (they open "> ## Documentation
+   Index", not "---"), and rejecting any file containing "<script" would also
+   reject genuine reference pages that carry one MDX component tag amid real
+   markdown. Both signals below have to hold together for a file to be
+   flagged. */
 const isShell = (text) => {
   const head = text.slice(0, 4096);
   if (/^\s*<(?:!doctype|html)\b/i.test(text)) return "starts with a doctype or <html>";
@@ -149,20 +96,28 @@ if (htmlFiles.length) {
    both in use. */
 const BOILERPLATE = new Set(["docs", "en"]);
 
-/* Host -> filename prefix. A table rather than a rule, because the prefix
-   records the URL a page was fetched from — see the header. An unlisted host
-   contributes its first label, which is what `www--` and
-   `modelcontextprotocol--` names came from. */
+/* Host -> filename prefix. A table rather than a rule, because the prefix is
+   a FOSSIL of the URL a page was fetched from rather than a transform of the
+   host a row cites now — `code.claude.com/docs/en/agent-teams` is on disk as
+   `claude-code--agent-teams.md` because the page lived at
+   `docs.claude.com/en/docs/claude-code/agent-teams` when it was fetched. So
+   the table can't be complete: a row citing a page that moved or was never
+   fetched is reported, not papered over. An unlisted host contributes its
+   first label instead, which is what `www--` and `modelcontextprotocol--`
+   names came from. */
 const HOST_PREFIX = {
   "docs.claude.com": "",
   "code.claude.com": "claude-code",
   "platform.claude.com": "platform",
 };
 
-/* Candidate filenames for a row's own URL: the path slug first, then the two
-   legacy forms. A fragment found in the row's own page is the normal case; a
-   fragment found only somewhere else means the row's URL is wrong, which is a
-   real defect that corpus-wide matching hides. */
+/* Candidate filenames for a row's own URL: the path slug first — the last two
+   meaningful segments joined by "--", since the last segment alone collides
+   as soon as two pages share it (`overview.md` and `mcp.md` each exist under
+   several paths) — then the two legacy single-segment forms some early
+   fetches still use. A fragment found in the row's own page is the normal
+   case; a fragment found only somewhere else means the row's URL is wrong,
+   which is a real defect that corpus-wide matching hides. */
 const fileCandidates = (url) => {
   const parts = (url || "").replace(/^https?:\/\//, "").replace(/\.md$/, "").split("/").filter(Boolean);
   const host = parts[0] || "";
@@ -173,10 +128,9 @@ const fileCandidates = (url) => {
   /* Tails of the last three, two and one segment, longest first because a
      longer tail is the more specific claim. Three is not padding: the MCP spec
      is served per version, so `specification/2026-07-28/server/tools` is on disk
-     as `modelcontextprotocol--2026-07-28--server--tools.md` and an undated
-     `modelcontextprotocol--server--tools.md` sits beside it holding different
-     text. Deriving only the last two segments credited the wrong one of the two
-     and reported three correct rows as misattributed. */
+     as `modelcontextprotocol--2026-07-28--server--tools.md`, with an undated
+     `modelcontextprotocol--server--tools.md` beside it holding different text —
+     deriving only the last two segments would credit the wrong one of the two. */
   const names = [];
   for (const n of [3, 2, 1]) {
     if (segs.length < n) continue;
@@ -240,8 +194,7 @@ for (const row of rows) {
 
          The credited page IS in the corpus and the quote is not in it: that is
          a possible misattribution, and catching it is why per-page matching
-         exists at all. Reporting it in the same list as the case below is what
-         buried 359 of these in noise.
+         exists at all.
 
          The credited page is NOT in the corpus under any name this derives: the
          tool never had the page to compare against, so the row may be perfectly
@@ -278,9 +231,8 @@ if (noPage.size) {
     console.log(`  NO-PAGE  ${cited}\n             tried ${v.tried}\n             rows ${[...v.ids].join(", ")}`);
 }
 
-/* Pages nobody cites. With ten sources this was curiosity; across four new
-   inventories it is the signal that a page was fetched and then not mined, or
-   that a row's URL drifted from the file it was saved as. */
+/* Pages nobody cites are a signal that a page was fetched and then not
+   mined, or that a row's URL drifted from the file it was saved as. */
 const orphans = corpus.filter((c) => !usedFiles.has(c.name)).map((c) => c.name);
 if (orphans.length)
   console.log(`\n  ${orphans.length} fetched page(s) cited by no row in this inventory: ${orphans.join(", ")}`);

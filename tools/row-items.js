@@ -1,83 +1,14 @@
-/* ============================================================
-   CCA Trainer · the bookkeeping tell
-   ------------------------------------------------------------
-   A development tool, NOT part of the app. index.html never loads it.
+/* Finds research rows whose objective cell names two or more bank items — the
+   sibling of row-aliases.js, which finds two rows carrying one fact; this finds
+   one row carrying two, which is a research inventory stating outright that a
+   sourced fact was keyed twice.
 
-       node tools/row-items.js [CODE]
+   node tools/row-items.js [CODE]
 
-   The sibling of `row-aliases.js`, and the other half of one defect.
-   `row-aliases.js` finds TWO ROWS carrying ONE FACT. This finds ONE ROW
-   carrying TWO BANK ITEMS — a research row whose objective cell says it backs
-   `[32]` and `[63]` is stating outright that one sourced fact is keyed twice.
-
-   Why it is worth a tool. The `[32]`/`[63]` duplicate pair survived every
-   similarity check in the repo and was found only by a by-hand read of 151
-   items, because the two stems share almost no wording: one asks for the
-   prescription and the other for the mechanism. But `AR5-04` and `AR5-06` both
-   end "Backs `[32]`, `[63]`", so the inventory had been saying so in writing the
-   whole time. The same tell exposed `AR5-19`/`AR5-22` and `AR5-65`/`AR5-69`.
-   Grepping for it costs nothing next to the read.
-
-   THREE CLASSES, AND ONLY ONE OF THEM IS A DUPLICATE. Measured 2026-09-15: 26
-   rows name two or more items, and a flat count of them is misleading, so they
-   are reported apart:
-
-   A row naming two NON-OFFICIAL items is the duplicate candidate. When two
-   different rows name the same pair, that is the strongest form — the inventory
-   has said it twice, independently.
-
-   A row naming an OFFICIAL item beside a non-official one is the
-   official-sample competition class instead. The guide's twelve samples are
-   frozen, so the finding is never "these two duplicate" but "the non-official
-   side is the replacement slot" — a different action, which is why it is not
-   mixed in with the above.
-
-   A row that says it backs the DISTRACTORS in two items, or that it SEPARATES
-   them, is not a finding at all. One fact can legitimately supply distractors to
-   several items, and `AR2-24` exists precisely to record what tells `[80]` and
-   official `[123]` apart. These are listed rather than dropped, because a
-   suppressed line is indistinguishable from a line the tool cannot see.
-
-   WHAT ABSENCE MEANS. `d3` and every Associate inventory carry no item
-   references at all, so this tool is silent about them — silent because the
-   bookkeeping was never written, not because the domain is clean. Files with no
-   references are named for that reason.
-
-   TWO STRUCTURAL FILTERS, both measured on the full triage of 2026-09-15, where
-   all seventeen pairs were read against the actual bank items. Five turned out to
-   be genuine open duplicates, so a flat list is 5/17 = 29% precise. Both filters
-   together put all five in one bucket of eight: 5/8 = 63%, and neither filter
-   loses a finding.
-
-   ARITY. A row naming exactly two items is the tell. A row naming three or more
-   is citing background: `AR2-30` quotes what plan mode *is* and names four items
-   that each key a different facet of it, which alone manufactured three false
-   pairs. Measured: 3+ item rows produced four pairs and zero findings, while
-   every one of the five real findings came from a two-item row.
-
-   CITES BACK. A row claims to back an item; the item cites its rows in `src`. If
-   the item carries a `src` that does not name the row, the claim is STALE — the
-   item was rewritten and nobody updated the note. This is not a judgement call
-   and it is exactly right in all ten cases it fires on, including the five pairs
-   the redundancy pass had already resolved. An item with no `src` at all cannot
-   contradict the note, so it stays a live candidate.
-
-   So a LIVE candidate is a two-item row whose items both either cite it or carry
-   no `src`. That is the list to act on; everything else is reported beneath it,
-   because a suppressed line is indistinguishable from one the tool cannot see.
-
-   WHAT NEITHER FILTER CAN SEE is a pair a human has already ruled on. `[83]` and
-   `[142]` sit in LIVE and belong there — two rows name exactly that pair and both
-   items cite them — but the ruling was made on 2026-09-14: narrow `[142]`, do not
-   replace it, because its `--output-format json` half is genuinely uncovered by
-   the guide's Sample 10. Rulings live in `TODO.md`, not in the inventory rows, so
-   check them before spending a slot. Three of the eight LIVE pairs on the first
-   run were not duplicates; the triage is written up under
-   `docs/superpowers/findings/`.
-
-   Reports only, exit 0. The classification leans on the wording of a human note,
-   which is a heuristic, and a heuristic must not be able to block anything.
-   ============================================================ */
+   Silent about any inventory with no item references at all — that means the
+   bookkeeping was never written, not that the domain is clean. Reports only,
+   exit 0: the classification leans on the wording of a human note, which is a
+   heuristic and must not be able to block anything. */
 
 const fs = require("fs");
 const path = require("path");
@@ -171,10 +102,9 @@ for (const r of rows) {
   const off = r.items.filter((i) => official.has(i));
 
   /* Does the note's own wording agree with the bank about what is official?
-     The word has to sit IMMEDIATELY before the reference. A first draft allowed
-     20 characters of slack and reported three rows that were perfectly correct:
-     "Backs `[81]`, official `[122]`, `[125]`" qualifies only `[122]`, and the
-     slack let "official" reach across the comma to the next two. */
+     The word has to sit IMMEDIATELY before the reference — "Backs `[81]`,
+     official `[122]`, `[125]`" qualifies only `[122]`, so slack that let
+     "official" reach across the comma would wrongly credit the next item too. */
   for (const i of r.items) {
     const calledOfficial = new RegExp(`official\\s+\`?\\[${i}\\]`, "i").test(r.objective);
     if (calledOfficial !== official.has(i))
@@ -185,6 +115,8 @@ for (const r of rows) {
     noted.push(r);
     continue;
   }
+  // A row naming a guide sample beside a non-official item competes rather than
+  // duplicates: the sample is frozen, so the non-official side is the slot.
   for (const o of off) for (const p of plain) competes.push({ ...r, official: o, slot: p });
 
   const srcs = srcByTrack.get(r.track) || [];
@@ -195,6 +127,8 @@ for (const r of rows) {
     for (let b = a + 1; b < plain.length; b++) {
       const key = `${r.track} [${plain[a]}] / [${plain[b]}]`;
       if (!corroborated.has(key)) corroborated.set(key, []);
+      // A row naming exactly two items is the duplicate tell; three or more is
+      // citing shared background rather than keying one fact twice.
       const bucket =
         r.items.length > 2 ? "background" : stale.length ? "stale" : "live";
       corroborated.get(key).push({ ...r, bucket, stale });
@@ -236,7 +170,7 @@ if (stalePairs.length) {
 const background = pairs.filter(([, , b]) => b === 2);
 if (background.length) {
   console.log(`\n  ${background.length} pair(s) from a row naming THREE OR MORE items, which is background the`);
-  console.log(`  items share rather than one fact keyed twice. Measured: zero findings here:`);
+  console.log(`  items share rather than one fact keyed twice — historically a weak signal:`);
   for (const [key, rs] of background)
     console.log(`  BACKGROUND    ${key}  ${rs[0].id} names ${rs[0].items.length} items`);
 }

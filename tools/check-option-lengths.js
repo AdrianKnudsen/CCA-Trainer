@@ -1,23 +1,19 @@
 /* Option-length tells, per domain, for both built banks.
 
-   Usage:
-     node tools/check-option-lengths.js              summary per domain
-     node tools/check-option-lengths.js --items      also list every tell-bearing item
-
-   Two metrics, and the order matters.
+   node tools/check-option-lengths.js              summary per domain
+   node tools/check-option-lengths.js --items      also list every tell-bearing item
 
    PRIMARY: the share of single-answer items where the keyed option is longer
    than every distractor BY MORE THAN A VISIBLE MARGIN. "Pick the longest
    option" is what a candidate can actually exploit, and option shuffling does
    not wash it out the way it washes out position bias.
 
-   The margin matters, and getting this wrong cost a pass of work. The obvious
-   metric is "is the key strictly the longest", but that fires on a
-   one-character difference nobody can see. Measured after the d2 length pass:
-   its strict rate barely moved, 14/21 to 13/21, while its worst gap fell from
-   48 characters to 10 and its median from 14 to 4 — the tell was gone and the
-   metric could not tell. So the threshold is EXPLOITABLE_GAP below, and it
-   separates the two banks cleanly where the strict measure does not:
+   The margin matters: the obvious metric, "is the key strictly the longest",
+   fires on a one-character difference nobody can see, and it barely moves
+   even when a length pass removes every visible tell and collapses the gap
+   distribution under it — the tell is gone and the metric can't tell. So the
+   threshold is EXPLOITABLE_GAP below, and it separates the two banks cleanly
+   where the strict measure does not:
 
        gap > 0   CCAR-F 65%   CCAO-F 23%
        gap > 5   CCAR-F 51%   CCAO-F 13%
@@ -30,12 +26,12 @@
    measure a chance baseline does exist — 1/options, so 25% on four options —
    and that is still reported as context.)
 
-   SECONDARY: the pooled mean keyed vs distractor option length, with the
-   >20-character marker `docs/drafts/check-drafts.js` applies to the Associate
-   drafts. It is a summary, not a target: closing every domain to a mean gap of
-   19 still leaves 60% of items with the key strictly longest, because the mean
-   hides which items carry it. Associate's real achieved standard is |gap| <= 7
-   per domain, reached item by item.
+   SECONDARY: the pooled mean keyed vs distractor option length, flagged past a
+   >20-character gap (MEAN_MARKER below). It is a summary, not a target:
+   closing every domain to a mean gap of 19 still leaves 60% of items with the
+   key strictly longest, because the mean hides which items carry it.
+   Associate's real achieved standard is |gap| <= 7 per domain, reached item
+   by item.
 
    Reports only. It never fails a run, deliberately: which distractor to lift is
    a judgement about plausibility that no character count can make. */
