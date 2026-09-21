@@ -44,12 +44,14 @@ const RESEARCH_DIR = path.join(__dirname, "..", "docs", "research");
 
 /* Domains whose every question must cite a research row that actually exists.
    Declared per track and per domain rather than globally, because sourcing was
-   retrofitted one domain at a time: 126 of the 151 Architect questions carry no
-   `src` at all and must not fail the build while their inventory is unwritten.
-   Add a domain here only once its inventory is complete. */
+   retrofitted one domain at a time: 68 of the 151 Architect questions still carry
+   no `src` at all and must not fail the build while their sourcing is unwritten.
+   Add a domain here only once every one of its items resolves. `d5` was added
+   2026-09-21, when all 27 of its items did; `d1`, `d3` and `d4` do not, and the
+   `d3`/`d4` coverage passes are cancelled, so those two will never be declared. */
 const SOURCED_DOMAINS = {
   "CCAO-F": ["a1", "a2", "a3", "a4", "a5", "a6", "a7"],
-  "CCAR-F": ["d2"],
+  "CCAR-F": ["d2", "d5"],
 };
 
 /* A research row as the notes write it: an id, the verbatim claim, the source
